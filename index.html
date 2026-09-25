@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Label Studio PRO - Thermal & Retail Studio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for 20 diverse options -->
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Caveat:wght@400..700&family=Cinzel:wght@400..900&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Dancing+Script:wght@400..700&family=Fredoka:wght@300..700&family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400..700;1,400..700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Montserrat:wght@300;400;600;700&family=Open+Sans:wght@300;400;600;700&family=Oswald:wght@400;600;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=Poppins:wght@300;400;600;700&family=Press+Start+2P&family=Roboto+Mono:ital,wght@0,300;0,400;0,700;1,400&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Barcode & QR Code Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <!-- html2canvas & jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Font Utility Classes */
+        .font-Inter { font-family: 'Inter', sans-serif; }
+        .font-Roboto { font-family: 'Roboto', sans-serif; }
+        .font-Open-Sans { font-family: 'Open Sans', sans-serif; }
+        .font-Montserrat { font-family: 'Montserrat', sans-serif; }
+        .font-Poppins { font-family: 'Poppins', sans-serif; }
+        .font-Oswald { font-family: 'Oswald', sans-serif; }
+        .font-Bebas-Neue { font-family: 'Bebas Neue', cursive; }
+        .font-Anton { font-family: 'Anton', sans-serif; }
+        .font-Roboto-Mono { font-family: 'Roboto Mono', monospace; }
+        .font-Courier-Prime { font-family: 'Courier Prime', monospace; }
+        .font-Playfair-Display { font-family: 'Playfair Display', serif; }
+        .font-Merriweather { font-family: 'Merriweather', serif; }
+        .font-Lora { font-family: 'Lora', serif; }
+        .font-Cinzel { font-family: 'Cinzel', serif; }
+        .font-Pacifico { font-family: 'Pacifico', cursive; }
+        .font-Dancing-Script { font-family: 'Dancing Script', cursive; }
+        .font-Permanent-Marker { font-family: 'Permanent Marker', cursive; }
+        .font-Press-Start-2P { font-family: 'Press Start 2P', cursive; }
+        .font-Caveat { font-family: 'Caveat', cursive; }
+        .font-Fredoka { font-family: 'Fredoka', sans-serif; }
+
+        /* Canvas Elements Styles */
+        .label-element {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            box-sizing: border-box;
+            border: 1px dashed transparent;
+        }
+        .label-element:hover, .label-element.selected {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.04);
+        }
+        .label-element.locked {
+            cursor: default;
+            border-color: #f59e0b !important;
+        }
+
+        /* Resize & Rotation Handles */
+        .resize-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #3b82f6;
+            border: 1px solid #ffffff;
+            border-radius: 50%;
+            z-index: 10;
+        }
+        .handle-tl { top: -4px; left: -4px; cursor: nwse-resize; }
+        .handle-tr { top: -4px; right: -4px; cursor: nesw-resize; }
+        .handle-bl { bottom: -4px; left: -4px; cursor: nesw-resize; }
+        .handle-br { bottom: -4px; right: -4px; cursor: nwse-resize; }
+        .rotate-handle {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border: 1px solid #ffffff;
+            border-radius: 50%;
+            cursor: grab;
+            z-index: 10;
+        }
+
+        /* Dot Grid Pattern */
+        .canvas-grid {
+            background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+            background-size: 15px 15px;
+        }
+
+        /* Context Menu Styles */
+        #contextMenu {
+            display: none;
+            position: absolute;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-Inter min-h-screen flex flex-col select-none overflow-hidden">
+
+    <!-- Desktop Header / Main Toolbar -->
+    <header class="bg-slate-950 border-b border-slate-800 px-4 py-2 flex items-center justify-between z-30">
+        <div class="flex items-center space-x-3">
+            <div class="bg-blue-600 p-1.5 rounded-lg text-white font-bold text-sm">
+                <i class="fa-solid fa-barcode"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-sm tracking-wide text-white">Label Studio PRO</h1>
+                <p class="text-[10px] text-slate-400">Desktop Desktop Thermal Designer</p>
+            </div>
+        </div>
+
+        <!-- Presets & Controls -->
+        <div class="flex items-center space-x-2 text-xs">
+            <div class="flex items-center bg-slate-900 rounded-md px-2 py-1 border border-slate-800">
+                <span class="text-slate-400 mr-1.5"><i class="fa-solid fa-layer-group text-blue-400"></i> Template:</span>
+                <select id="templateSelect" class="bg-transparent text-white focus:outline-none cursor-pointer">
+                    <option value="none">-- Custom Design --</option>
+                    <option value="pouch">Grocery Pouch Label</option>
+                    <option value="pricetag">Compact Price Tag</option>
+                    <option value="expiry">Expiry & Batch Sticker</option>
+                    <option value="barcode">Simple Barcode</option>
+                </select>
+            </div>
+
+            <div class="flex items-center bg-slate-900 rounded-md px-2 py-1 border border-slate-800">
+                <span class="text-slate-400 mr-1.5"><i class="fa-solid fa-ruler-combined text-blue-400"></i> Size:</span>
+                <select id="presetSelect" class="bg-transparent text-white focus:outline-none cursor-pointer">
+                    <option value="50x50">50 × 50 mm</option>
+                    <option value="25x50">25 × 50 mm</option>
+                    <option value="100x150">100 × 150 mm (Shipping 1-Up)</option>
+                    <option value="custom">Custom Dimension</option>
+                </select>
+            </div>
+
+            <div class="flex items-center bg-slate-900 rounded-md px-2 py-1 border border-slate-800">
+                <span class="text-slate-400 mr-1.5"><i class="fa-solid fa-columns text-blue-400"></i> Print Layout:</span>
+                <select id="layoutModeSelect" class="bg-transparent text-white focus:outline-none cursor-pointer">
+                    <option value="1up">1-Up (Single Column)</option>
+                    <option value="2up" selected>2-Up (Dual Column)</option>
+                </select>
+            </div>
+
+            <div id="customSizeBox" class="hidden flex items-center space-x-1 bg-slate-900 rounded-md px-2 py-1 border border-slate-800">
+                <input type="number" id="customWidth" value="50" class="w-10 bg-slate-950 text-center rounded text-white py-0.5" placeholder="W">
+                <span class="text-slate-500">×</span>
+                <input type="number" id="customHeight" value="50" class="w-10 bg-slate-950 text-center rounded text-white py-0.5" placeholder="H">
+                <span class="text-slate-500">mm</span>
+            </div>
+
+            <button id="snapToggle" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 px-2.5 py-1 rounded flex items-center space-x-1" title="Toggle Snap Grid">
+                <i class="fa-solid fa-border-top-left text-blue-400"></i>
+                <span id="snapStatus">Snap: ON</span>
+            </button>
+        </div>
+
+        <!-- Global Action Buttons -->
+        <div class="flex items-center space-x-2 text-xs">
+            <button id="undoBtn" title="Undo (Ctrl/Cmd+Z)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded border border-slate-700 disabled:opacity-40" disabled><i class="fa-solid fa-rotate-left"></i></button>
+            <button id="redoBtn" title="Redo (Ctrl/Cmd+Y)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded border border-slate-700 disabled:opacity-40" disabled><i class="fa-solid fa-rotate-right"></i></button>
+            <button id="batchModalBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded font-medium flex items-center"><i class="fa-solid fa-list-ol mr-1.5"></i> Batch CSV</button>
+            <button id="previewBtn" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded font-medium flex items-center border border-slate-700"><i class="fa-solid fa-eye mr-1.5"></i> Preview</button>
+            <button id="downloadPdfBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded font-medium flex items-center"><i class="fa-solid fa-file-pdf mr-1.5"></i> PDF</button>
+            <button id="printBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded font-medium flex items-center shadow-lg"><i class="fa-solid fa-print mr-1.5"></i> Print</button>
+        </div>
+    </header>
+
+    <!-- Main Desktop Workspace Layout -->
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- Left Toolbox Panel -->
+        <aside class="w-64 bg-slate-950 border-r border-slate-800 p-3 flex flex-col space-y-4 overflow-y-auto">
+            <div>
+                <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Add Elements</h3>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <button id="addTextBtn" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2.5 rounded-lg font-medium flex flex-col items-center justify-center text-slate-200 transition">
+                        <i class="fa-solid fa-font text-blue-400 text-base mb-1"></i> Text
+                    </button>
+                    <button id="addBarcodeBtn" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2.5 rounded-lg font-medium flex flex-col items-center justify-center text-slate-200 transition">
+                        <i class="fa-solid fa-barcode text-blue-400 text-base mb-1"></i> Barcode
+                    </button>
+                    <button id="addQrBtn" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2.5 rounded-lg font-medium flex flex-col items-center justify-center text-slate-200 transition">
+                        <i class="fa-solid fa-qrcode text-blue-400 text-base mb-1"></i> QR Code
+                    </button>
+                    <button id="addBoxBtn" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2.5 rounded-lg font-medium flex flex-col items-center justify-center text-slate-200 transition">
+                        <i class="fa-regular fa-square text-blue-400 text-base mb-1"></i> Box / Frame
+                    </button>
+                </div>
+            </div>
+
+            <!-- Retail & Shipping Vector Icons Library -->
+            <div>
+                <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Retail Icons</h3>
+                <div class="grid grid-cols-4 gap-1.5">
+                    <button data-icon="fragile" class="addIconBtn bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2 rounded text-slate-300 flex items-center justify-center text-sm" title="Fragile Glass">🍷</button>
+                    <button data-icon="veg" class="addIconBtn bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2 rounded text-slate-300 flex items-center justify-center text-sm" title="Veg Indicator">🟢</button>
+                    <button data-icon="nonveg" class="addIconBtn bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2 rounded text-slate-300 flex items-center justify-center text-sm" title="Non-Veg Indicator">🔴</button>
+                    <button data-icon="recycle" class="addIconBtn bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2 rounded text-slate-300 flex items-center justify-center text-sm" title="Recycle Eco">♻️</button>
+                    <button data-icon="leaf" class="addIconBtn bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2 rounded text-slate-300 flex items-center justify-center text-sm" title="Organic Leaf">🌿</button>
+                    <button data-icon="umbrella" class="addIconBtn bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2 rounded text-slate-300 flex items-center justify-center text-sm" title="Keep Dry">☔</button>
+                    <button data-icon="scissors" class="addIconBtn bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2 rounded text-slate-300 flex items-center justify-center text-sm" title="Cut Line">✂️</button>
+                    <button data-icon="arrow" class="addIconBtn bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2 rounded text-slate-300 flex items-center justify-center text-sm" title="This Way Up">⬆️</button>
+                </div>
+            </div>
+
+            <!-- Upload Custom Assets -->
+            <div class="space-y-2">
+                <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Custom Assets</h3>
+                <label class="bg-slate-900 hover:bg-slate-800 border border-slate-800 border-dashed rounded-lg p-2.5 flex items-center justify-center space-x-2 text-xs text-slate-300 cursor-pointer">
+                    <i class="fa-solid fa-cloud-arrow-up text-blue-400"></i>
+                    <span>Upload Image / Logo</span>
+                    <input type="file" id="imageUploadInput" accept="image/*" class="hidden">
+                </label>
+                <label class="bg-slate-900 hover:bg-slate-800 border border-slate-800 border-dashed rounded-lg p-2.5 flex items-center justify-center space-x-2 text-xs text-slate-300 cursor-pointer">
+                    <i class="fa-solid fa-font text-indigo-400"></i>
+                    <span>Upload Custom Font</span>
+                    <input type="file" id="fontUploadInput" accept=".ttf,.woff,.woff2" class="hidden">
+                </label>
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- Alignment Toolbar -->
+            <div class="space-y-2">
+                <h3 class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Canvas Align</h3>
+                <div class="grid grid-cols-2 gap-1.5 text-xs">
+                    <button id="alignLeftBtn" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 py-1 rounded text-slate-300"><i class="fa-solid fa-align-left mr-1"></i> Left</button>
+                    <button id="alignCenterHBtn" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 py-1 rounded text-slate-300"><i class="fa-solid fa-arrows-left-right mr-1"></i> Center H</button>
+                    <button id="alignRightBtn" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 py-1 rounded text-slate-300"><i class="fa-solid fa-align-right mr-1"></i> Right</button>
+                    <button id="alignCenterVBtn" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 py-1 rounded text-slate-300"><i class="fa-solid fa-arrows-up-down mr-1"></i> Center V</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center Workspace Canvas -->
+        <main id="mainWorkspace" class="flex-1 bg-slate-950 overflow-hidden relative flex items-center justify-center p-8">
+            
+            <!-- Floating Zoom Control -->
+            <div class="absolute bottom-4 right-4 bg-slate-900/90 border border-slate-800 rounded-lg p-1.5 flex items-center space-x-2 text-xs z-20 shadow-lg backdrop-blur-md">
+                <button id="zoomOut" class="text-slate-400 hover:text-white px-2"><i class="fa-solid fa-minus"></i></button>
+                <span id="zoomLevel" class="text-blue-400 font-mono">100%</span>
+                <button id="zoomIn" class="text-slate-400 hover:text-white px-2"><i class="fa-solid fa-plus"></i></button>
+            </div>
+
+            <!-- Workspace Canvas Container -->
+            <div id="workspaceContainer" class="relative shadow-2xl bg-white transition-transform duration-75" style="width: 300px; height: 300px;">
+                <div id="labelCanvas" class="absolute inset-0 overflow-hidden bg-white">
+                    <!-- Dynamic Elements Injected Here -->
+                </div>
+                
+                <!-- Smart Alignment Guidelines -->
+                <div id="guideH" class="absolute left-0 right-0 border-t border-red-500 pointer-events-none hidden z-50"></div>
+                <div id="guideV" class="absolute top-0 bottom-0 border-l border-red-500 pointer-events-none hidden z-50"></div>
+            </div>
+        </main>
+
+        <!-- Right Property Inspector Panel -->
+        <aside class="w-72 bg-slate-950 border-l border-slate-800 p-4 flex flex-col space-y-4 overflow-y-auto z-10">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Properties</h3>
+                <span id="selectedElementType" class="text-xs bg-blue-900/40 text-blue-400 border border-blue-800/60 px-2 py-0.5 rounded font-mono">None</span>
+            </div>
+
+            <div id="inspectorPanel" class="flex-1 flex flex-col space-y-3 opacity-40 pointer-events-none transition-opacity">
+                
+                <!-- Text Content Input -->
+                <div id="propTextContentGroup" class="space-y-1">
+                    <label class="text-xs font-medium text-slate-400">Content / Data Token</label>
+                    <textarea id="propTextContent" rows="2" class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded p-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none"></textarea>
+                </div>
+
+                <!-- Text Formatting Options -->
+                <div id="propTextFormattingGroup" class="space-y-2">
+                    <label class="text-xs font-medium text-slate-400">Typography</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <span class="text-[10px] text-slate-500">Font Family</span>
+                            <select id="propFontFamily" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded p-1">
+                                <option value="Inter">Inter</option>
+                                <option value="Roboto">Roboto</option>
+                                <option value="Open Sans">Open Sans</option>
+                                <option value="Montserrat">Montserrat</option>
+                                <option value="Poppins">Poppins</option>
+                                <option value="Oswald">Oswald</option>
+                                <option value="Bebas Neue">Bebas Neue</option>
+                                <option value="Anton">Anton</option>
+                                <option value="Roboto Mono">Roboto Mono</option>
+                                <option value="Courier Prime">Courier Prime</option>
+                                <option value="Playfair Display">Playfair Display</option>
+                                <option value="Merriweather">Merriweather</option>
+                                <option value="Lora">Lora</option>
+                                <option value="Cinzel">Cinzel</option>
+                                <option value="Pacifico">Pacifico</option>
+                                <option value="Dancing Script">Dancing Script</option>
+                                <option value="Permanent Marker">Permanent Marker</option>
+                                <option value="Press Start 2P">Press Start 2P</option>
+                                <option value="Caveat">Caveat</option>
+                                <option value="Fredoka">Fredoka</option>
+                            </select>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-500">Font Size (px)</span>
+                            <input type="number" id="propFontSize" min="6" max="120" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded p-1">
+                        </div>
+                    </div>
+
+                    <!-- Style Toggles -->
+                    <div class="flex items-center space-x-1 pt-1">
+                        <button id="styleBold" class="flex-1 bg-slate-900 border border-slate-800 rounded py-1 text-xs font-bold font-serif">B</button>
+                        <button id="styleItalic" class="flex-1 bg-slate-900 border border-slate-800 rounded py-1 text-xs italic font-serif">I</button>
+                        <button id="styleUnderline" class="flex-1 bg-slate-900 border border-slate-800 rounded py-1 text-xs underline">U</button>
+                        <button id="styleUppercase" class="flex-1 bg-slate-900 border border-slate-800 rounded py-1 text-[11px] font-semibold" title="ALL CAPS">TT</button>
+                    </div>
+
+                    <!-- Alignment -->
+                    <div class="space-y-1 pt-1">
+                        <span class="text-[10px] text-slate-500">Text Align</span>
+                        <div class="flex items-center space-x-1 text-xs">
+                            <button id="alignLeft" class="flex-1 bg-slate-900 border border-slate-800 rounded py-1 flex items-center justify-center"><i class="fa-solid fa-align-left mr-1"></i> Left</button>
+                            <button id="alignCenter" class="flex-1 bg-slate-900 border border-slate-800 rounded py-1 flex items-center justify-center"><i class="fa-solid fa-align-center mr-1"></i> Middle</button>
+                            <button id="alignRight" class="flex-1 bg-slate-900 border border-slate-800 rounded py-1 flex items-center justify-center"><i class="fa-solid fa-align-right mr-1"></i> Right</button>
+                        </div>
+                    </div>
+
+                    <div class="pt-1 space-y-1.5">
+                        <label class="flex items-center space-x-2 text-xs cursor-pointer">
+                            <input type="checkbox" id="propReversePrint" class="rounded text-blue-600 focus:ring-blue-500">
+                            <span class="text-slate-300">Reverse Print (White on Dark)</span>
+                        </label>
+                        <label class="flex items-center space-x-2 text-xs cursor-pointer">
+                            <input type="checkbox" id="propArcText" class="rounded text-blue-600 focus:ring-blue-500">
+                            <span class="text-slate-300">Curved / Arc Text</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Barcode Specific Options -->
+                <div id="propBarcodeOptionsGroup" class="space-y-2 hidden">
+                    <div>
+                        <span class="text-[10px] text-slate-500">Symbology Format</span>
+                        <select id="propBarcodeFormat" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded p-1">
+                            <option value="CODE128">Code 128 (Universal)</option>
+                            <option value="CODE39">Code 39</option>
+                            <option value="EAN13">EAN-13 Retail</option>
+                            <option value="DATAMATRIX">Data Matrix 2D</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-slate-500">Text Size (px)</span>
+                        <input type="number" id="propBarcodeTextSize" min="6" max="30" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded p-1">
+                    </div>
+                </div>
+
+                <!-- Lock & Layer Order Actions -->
+                <div class="pt-2 border-t border-slate-800 space-y-2">
+                    <span class="text-[10px] text-slate-500 uppercase">Layer & Lock</span>
+                    <div class="grid grid-cols-2 gap-1.5 text-xs">
+                        <button id="layerUpBtn" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 py-1 rounded text-slate-300"><i class="fa-solid fa-layer-group text-blue-400 mr-1"></i> Forward</button>
+                        <button id="layerDownBtn" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 py-1 rounded text-slate-300"><i class="fa-solid fa-layer-group text-slate-500 mr-1"></i> Backward</button>
+                        <button id="lockToggleBtn" class="col-span-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 py-1 rounded text-slate-300 flex items-center justify-center space-x-1">
+                            <i id="lockIcon" class="fa-solid fa-lock text-amber-400"></i>
+                            <span id="lockStatusText">Lock Element</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Common Actions -->
+                <div class="pt-2 flex space-x-2">
+                    <button id="duplicateElementBtn" class="flex-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 py-1.5 rounded text-xs font-medium">
+                        <i class="fa-regular fa-clone mr-1"></i> Duplicate
+                    </button>
+                    <button id="deleteElementBtn" class="flex-1 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/60 py-1.5 rounded text-xs font-medium">
+                        <i class="fa-regular fa-trash-can mr-1"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Right-Click Canvas Context Menu -->
+    <div id="contextMenu" class="bg-slate-900 border border-slate-800 shadow-2xl rounded-lg py-1 w-44 text-xs text-slate-200">
+        <button id="ctxBringForward" class="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center space-x-2">
+            <i class="fa-solid fa-arrow-up text-blue-400 w-4"></i><span>Bring Forward</span>
+        </button>
+        <button id="ctxSendBackward" class="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center space-x-2">
+            <i class="fa-solid fa-arrow-down text-slate-400 w-4"></i><span>Send Backward</span>
+        </button>
+        <button id="ctxDuplicate" class="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center space-x-2">
+            <i class="fa-regular fa-clone text-emerald-400 w-4"></i><span>Duplicate</span>
+        </button>
+        <button id="ctxCenterH" class="w-full text-left px-3 py-1.5 hover:bg-slate-800 flex items-center space-x-2">
+            <i class="fa-solid fa-arrows-left-right text-indigo-400 w-4"></i><span>Center Horizontal</span>
+        </button>
+        <hr class="border-slate-800 my-1">
+        <button id="ctxDelete" class="w-full text-left px-3 py-1.5 hover:bg-slate-800 text-red-400 flex items-center space-x-2">
+            <i class="fa-regular fa-trash-can w-4"></i><span>Delete</span>
+        </button>
+    </div>
+
+    <!-- Batch Generation Modal -->
+    <div id="batchModal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col">
+            <div class="px-5 py-3 bg-slate-950 text-white flex items-center justify-between border-b border-slate-800">
+                <h3 class="font-semibold text-sm flex items-center"><i class="fa-solid fa-list-ol text-blue-400 mr-2"></i> Batch CSV & Sequential Printing</h3>
+                <button id="closeBatchBtn" class="text-slate-400 hover:text-white text-lg">&times;</button>
+            </div>
+            <div class="p-5 space-y-4 text-xs text-slate-300">
+                <p>Upload a CSV file or enter comma-separated values to automatically batch-generate multiple label pages using placeholders like <code class="bg-slate-950 px-1 py-0.5 rounded text-blue-400 font-mono">{{product_name}}</code> or <code class="bg-slate-950 px-1 py-0.5 rounded text-blue-400 font-mono">{{price}}</code>.</p>
+                <div>
+                    <label class="block mb-1 text-slate-400">CSV Data File</label>
+                    <input type="file" id="csvFileInput" accept=".csv" class="w-full bg-slate-950 border border-slate-800 text-slate-300 p-2 rounded">
+                </div>
+            </div>
+            <div class="px-5 py-3 bg-slate-950 border-t border-slate-800 flex justify-end space-x-2">
+                <button id="closeBatchModalBtn" class="bg-slate-800 text-slate-300 px-4 py-1.5 rounded">Cancel</button>
+                <button id="processBatchBtn" class="bg-blue-600 text-white px-4 py-1.5 rounded font-medium">Batch Print PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Preview Modal -->
+    <div id="previewModal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl max-w-xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-5 py-3 bg-slate-950 text-white flex items-center justify-between border-b border-slate-800">
+                <h3 class="font-semibold text-sm flex items-center"><i class="fa-solid fa-eye text-blue-400 mr-2"></i> Print Preview</h3>
+                <button id="closePreviewBtn" class="text-slate-400 hover:text-white text-lg">&times;</button>
+            </div>
+            <div class="p-6 flex-1 bg-slate-950 flex items-center justify-center overflow-auto">
+                <div id="previewContainer" class="bg-white border border-slate-700 shadow-2xl relative"></div>
+            </div>
+            <div class="px-5 py-3 bg-slate-950 border-t border-slate-800 flex justify-end space-x-2">
+                <button id="closePreviewModalBtn" class="bg-slate-800 text-slate-300 px-4 py-1.5 rounded text-xs">Close</button>
+                <button id="modalPrintBtn" class="bg-blue-600 text-white px-4 py-1.5 rounded text-xs font-medium"><i class="fa-solid fa-print mr-1.5"></i> Print Now</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // App Core State
+        let state = {
+            preset: '50x50',
+            layoutMode: '2up',
+            customWidth: 50,  // mm
+            customHeight: 50, // mm
+            zoom: 1,
+            snapGrid: true,
+            gridSize: 5,
+            elements: [],
+            selectedId: null,
+            history: [],
+            redoStack: []
+        };
+
+        const MM_TO_PX = 3.7795;
+
+        // Default initial retail layout
+        const defaultElements = [
+            { id: 'el-1', type: 'text', content: 'LALITHA NATURALS', x: 10, y: 15, width: 170, height: 30, fontSize: 14, fontFamily: 'Inter', bold: true, italic: false, underline: false, uppercase: true, align: 'center', locked: false, zIndex: 1 },
+            { id: 'el-2', type: 'text', content: 'Cold Pressed Groundnut Oil - 1L', x: 10, y: 55, width: 170, height: 25, fontSize: 10, fontFamily: 'Inter', bold: false, italic: false, underline: false, uppercase: false, align: 'center', locked: false, zIndex: 2 },
+            { id: 'el-3', type: 'barcode', content: '890123456789', format: 'CODE128', x: 15, y: 90, width: 160, height: 45, textSize: 12, locked: false, zIndex: 3 },
+            { id: 'el-4', type: 'text', content: 'MRP: ₹280.00 (Incl. of all taxes)', x: 10, y: 145, width: 170, height: 20, fontSize: 10, fontFamily: 'Roboto Mono', bold: true, italic: false, underline: false, uppercase: false, align: 'center', locked: false, zIndex: 4 }
+        ];
+
+        // Retail Vector Icon Map
+        const retailIcons = {
+            fragile: '🍷', veg: '🟢', nonveg: '🔴', recycle: '♻️',
+            leaf: '🌿', umbrella: '☔', scissors: '✂️', arrow: '⬆️'
+        };
+
+        // DOM Elements
+        const presetSelect = document.getElementById('presetSelect');
+        const templateSelect = document.getElementById('templateSelect');
+        const layoutModeSelect = document.getElementById('layoutModeSelect');
+        const customSizeBox = document.getElementById('customSizeBox');
+        const customWidthInput = document.getElementById('customWidth');
+        customWidthInput.value = "50";
+        const customHeightInput = document.getElementById('customHeight');
+        customHeightInput.value = "50";
+        const snapToggle = document.getElementById('snapToggle');
+        const snapStatus = document.getElementById('snapStatus');
+        
+        const mainWorkspace = document.getElementById('mainWorkspace');
+        const workspaceContainer = document.getElementById('workspaceContainer');
+        const labelCanvas = document.getElementById('labelCanvas');
+        const guideH = document.getElementById('guideH');
+        const guideV = document.getElementById('guideV');
+        
+        const zoomInBtn = document.getElementById('zoomIn');
+        const zoomOutBtn = document.getElementById('zoomOut');
+        const zoomLevelSpan = document.getElementById('zoomLevel');
+        
+        const inspectorPanel = document.getElementById('inspectorPanel');
+        const selectedElementType = document.getElementById('selectedElementType');
+        const propTextContentGroup = document.getElementById('propTextContentGroup');
+        const propTextContent = document.getElementById('propTextContent');
+        const propTextFormattingGroup = document.getElementById('propTextFormattingGroup');
+        const propFontFamily = document.getElementById('propFontFamily');
+        const propFontSize = document.getElementById('propFontSize');
+        const styleBold = document.getElementById('styleBold');
+        const styleItalic = document.getElementById('styleItalic');
+        const styleUnderline = document.getElementById('styleUnderline');
+        const styleUppercase = document.getElementById('styleUppercase');
+        const alignLeft = document.getElementById('alignLeft');
+        const alignCenter = document.getElementById('alignCenter');
+        const alignRight = document.getElementById('alignRight');
+        const propReversePrint = document.getElementById('propReversePrint');
+        const propArcText = document.getElementById('propArcText');
+        const propBarcodeOptionsGroup = document.getElementById('propBarcodeOptionsGroup');
+        const propBarcodeFormat = document.getElementById('propBarcodeFormat');
+        const propBarcodeTextSize = document.getElementById('propBarcodeTextSize');
+        
+        const layerUpBtn = document.getElementById('layerUpBtn');
+        const layerDownBtn = document.getElementById('layerDownBtn');
+        const lockToggleBtn = document.getElementById('lockToggleBtn');
+        const lockIcon = document.getElementById('lockIcon');
+        const lockStatusText = document.getElementById('lockStatusText');
+        
+        const duplicateElementBtn = document.getElementById('duplicateElementBtn');
+        const deleteElementBtn = document.getElementById('deleteElementBtn');
+
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+        const previewBtn = document.getElementById('previewBtn');
+        const printBtn = document.getElementById('printBtn');
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+        const contextMenu = document.getElementById('contextMenu');
+
+        function init() {
+            // Restore saved state
+            const saved = localStorage.getItem('ln_label_studio_desktop_state');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state.elements = parsed.elements || defaultElements;
+                    state.preset = parsed.preset || '50x50';
+                    presetSelect.value = state.preset;
+                } catch(e) { state.elements = defaultElements; }
+            } else {
+                state.elements = defaultElements;
+            }
+
+            setupEventListeners();
+            updateDimensions();
+            renderCanvas();
+        }
+
+        function autoSaveState() {
+            localStorage.setItem('ln_label_studio_desktop_state', JSON.stringify({
+                preset: state.preset,
+                elements: state.elements
+            }));
+        }
+
+        function saveHistory() {
+            state.history.push(JSON.stringify(state.elements));
+            if (state.history.length > 30) state.history.shift();
+            state.redoStack = [];
+            updateUndoRedoButtons();
+            autoSaveState();
+        }
+
+        function updateUndoRedoButtons() {
+            undoBtn.disabled = state.history.length === 0;
+            redoBtn.disabled = state.redoStack.length === 0;
+        }
+
+        function setupEventListeners() {
+            // Preset size switcher
+            presetSelect.addEventListener('change', (e) => {
+                state.preset = e.target.value;
+                if (state.preset === 'custom') {
+                    customSizeBox.classList.remove('hidden');
+                } else {
+                    customSizeBox.classList.add('hidden');
+                    if (state.preset === '50x50') { state.customWidth = 50; state.customHeight = 50; }
+                    if (state.preset === '25x50') { state.customWidth = 50; state.customHeight = 25; }
+                    if (state.preset === '100x150') { 
+                        state.customWidth = 100; state.customHeight = 150; 
+                        state.layoutMode = '1up';
+                        layoutModeSelect.value = '1up';
+                        layoutModeSelect.disabled = true;
+                    } else {
+                        layoutModeSelect.disabled = false;
+                    }
+                }
+                updateDimensions();
+            });
+
+            // Layout Mode Selector
+            layoutModeSelect.addEventListener('change', (e) => { state.layoutMode = e.target.value; });
+
+            // Custom dimensions
+            customWidthInput.addEventListener('input', (e) => { state.customWidth = parseFloat(e.target.value) || 50; updateDimensions(); });
+            customHeightInput.addEventListener('input', (e) => { state.customHeight = parseFloat(e.target.value) || 50; updateDimensions(); });
+
+            // Snap Grid Toggle
+            snapToggle.addEventListener('click', () => {
+                state.snapGrid = !state.snapGrid;
+                snapStatus.textContent = state.snapGrid ? "Snap: ON" : "Snap: OFF";
+                labelCanvas.classList.toggle('canvas-grid', state.snapGrid);
+            });
+
+            // Zoom Control
+            zoomInBtn.addEventListener('click', () => { state.zoom = Math.min(state.zoom + 0.15, 3.0); updateZoom(); });
+            zoomOutBtn.addEventListener('click', () => { state.zoom = Math.max(state.zoom - 0.15, 0.4); updateZoom(); });
+
+            // Mouse wheel zoom over workspace
+            mainWorkspace.addEventListener('wheel', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    if (e.deltaY < 0) zoomInBtn.click();
+                    else zoomOutBtn.click();
+                }
+            });
+
+            // Add elements
+            document.getElementById('addTextBtn').addEventListener('click', () => {
+                saveHistory();
+                state.elements.push({ id: 'el-' + Date.now(), type: 'text', content: 'New Text', x: 20, y: 20, width: 140, height: 28, fontSize: 12, fontFamily: 'Inter', bold: false, italic: false, underline: false, uppercase: false, align: 'left', locked: false, zIndex: state.elements.length + 1 });
+                renderCanvas();
+            });
+            document.getElementById('addBarcodeBtn').addEventListener('click', () => {
+                saveHistory();
+                state.elements.push({ id: 'el-' + Date.now(), type: 'barcode', content: '1234567890', format: 'CODE128', x: 15, y: 20, width: 160, height: 45, textSize: 12, locked: false, zIndex: state.elements.length + 1 });
+                renderCanvas();
+            });
+            document.getElementById('addQrBtn').addEventListener('click', () => {
+                saveHistory();
+                state.elements.push({ id: 'el-' + Date.now(), type: 'qrcode', content: 'https://lalithanaturals.com', x: 20, y: 20, width: 60, height: 60, locked: false, zIndex: state.elements.length + 1 });
+                renderCanvas();
+            });
+            document.getElementById('addBoxBtn').addEventListener('click', () => {
+                saveHistory();
+                state.elements.push({ id: 'el-' + Date.now(), type: 'box', content: '', x: 10, y: 10, width: 160, height: 80, locked: false, zIndex: state.elements.length + 1 });
+                renderCanvas();
+            });
+
+            // Retail Icon Addition
+            document.querySelectorAll('.addIconBtn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const iconKey = btn.dataset.icon;
+                    if (retailIcons[iconKey]) {
+                        saveHistory();
+                        state.elements.push({ id: 'el-' + Date.now(), type: 'text', content: retailIcons[iconKey], x: 20, y: 20, width: 40, height: 40, fontSize: 24, fontFamily: 'Inter', align: 'center', locked: false, zIndex: state.elements.length + 1 });
+                        renderCanvas();
+                    }
+                });
+            });
+
+            // Alignment buttons
+            document.getElementById('alignLeftBtn').addEventListener('click', () => { alignSelected('left'); });
+            document.getElementById('alignCenterHBtn').addEventListener('click', () => { alignSelected('centerH'); });
+            document.getElementById('alignRightBtn').addEventListener('click', () => { alignSelected('right'); });
+            document.getElementById('alignCenterVBtn').addEventListener('click', () => { alignSelected('centerV'); });
+
+            // Image Upload
+            document.getElementById('imageUploadInput').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        saveHistory();
+                        state.elements.push({ id: 'el-' + Date.now(), type: 'image', content: evt.target.result, x: 20, y: 20, width: 80, height: 80, locked: false, zIndex: state.elements.length + 1 });
+                        renderCanvas();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Font Upload
+            document.getElementById('fontUploadInput').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const fontName = 'CustomFont_' + Date.now();
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        const font = new FontFace(fontName, evt.target.result);
+                        font.load().then(loadedFont => {
+                            document.fonts.add(loadedFont);
+                            const opt = document.createElement('option');
+                            opt.value = fontName;
+                            opt.textContent = file.name;
+                            propFontFamily.appendChild(opt);
+                            alert(`Font "${file.name}" loaded successfully!`);
+                        });
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+            });
+
+            // Inspector Property Changes
+            propTextContent.addEventListener('input', (e) => {
+                const el = getSelectedElement();
+                if (el) { el.content = e.target.value; renderCanvas(); autoSaveState(); }
+            });
+            propFontFamily.addEventListener('change', (e) => {
+                const el = getSelectedElement();
+                if (el) { saveHistory(); el.fontFamily = e.target.value; renderCanvas(); }
+            });
+            propFontSize.addEventListener('input', (e) => {
+                const el = getSelectedElement();
+                if (el) { el.fontSize = parseInt(e.target.value) || 12; renderCanvas(); autoSaveState(); }
+            });
+            styleBold.addEventListener('click', () => { const el = getSelectedElement(); if (el) { saveHistory(); el.bold = !el.bold; renderCanvas(); updateInspector(); } });
+            styleItalic.addEventListener('click', () => { const el = getSelectedElement(); if (el) { saveHistory(); el.italic = !el.italic; renderCanvas(); updateInspector(); } });
+            styleUnderline.addEventListener('click', () => { const el = getSelectedElement(); if (el) { saveHistory(); el.underline = !el.underline; renderCanvas(); updateInspector(); } });
+            styleUppercase.addEventListener('click', () => { const el = getSelectedElement(); if (el) { saveHistory(); el.uppercase = !el.uppercase; renderCanvas(); updateInspector(); } });
+            
+            alignLeft.addEventListener('click', () => { const el = getSelectedElement(); if (el) { saveHistory(); el.align = 'left'; renderCanvas(); updateInspector(); } });
+            alignCenter.addEventListener('click', () => { const el = getSelectedElement(); if (el) { saveHistory(); el.align = 'center'; renderCanvas(); updateInspector(); } });
+            alignRight.addEventListener('click', () => { const el = getSelectedElement(); if (el) { saveHistory(); el.align = 'right'; renderCanvas(); updateInspector(); } });
+
+            propBarcodeFormat.addEventListener('change', (e) => {
+                const el = getSelectedElement();
+                if (el && el.type === 'barcode') { saveHistory(); el.format = e.target.value; renderCanvas(); }
+            });
+            propBarcodeTextSize.addEventListener('input', (e) => {
+                const el = getSelectedElement();
+                if (el && el.type === 'barcode') { el.textSize = parseInt(e.target.value) || 12; renderCanvas(); autoSaveState(); }
+            });
+
+            // Lock / Layer Controls
+            lockToggleBtn.addEventListener('click', () => {
+                const el = getSelectedElement();
+                if (el) {
+                    saveHistory();
+                    el.locked = !el.locked;
+                    renderCanvas();
+                }
+            });
+            layerUpBtn.addEventListener('click', () => {
+                const el = getSelectedElement();
+                if (el) { saveHistory(); el.zIndex = (el.zIndex || 1) + 1; renderCanvas(); }
+            });
+            layerDownBtn.addEventListener('click', () => {
+                const el = getSelectedElement();
+                if (el) { saveHistory(); el.zIndex = Math.max(1, (el.zIndex || 1) - 1); renderCanvas(); }
+            });
+
+            // Duplicate / Delete
+            deleteElementBtn.addEventListener('click', deleteSelectedElement);
+            duplicateElementBtn.addEventListener('click', duplicateSelectedElement);
+
+            // Context Menu Actions
+            document.getElementById('ctxBringForward').addEventListener('click', () => { layerUpBtn.click(); hideContextMenu(); });
+            document.getElementById('ctxSendBackward').addEventListener('click', () => { layerDownBtn.click(); hideContextMenu(); });
+            document.getElementById('ctxDuplicate').addEventListener('click', () => { duplicateSelectedElement(); hideContextMenu(); });
+            document.getElementById('ctxCenterH').addEventListener('click', () => { alignSelected('centerH'); hideContextMenu(); });
+            document.getElementById('ctxDelete').addEventListener('click', () => { deleteSelectedElement(); hideContextMenu(); });
+
+            // Hide Context Menu on Global Click
+            window.addEventListener('click', hideContextMenu);
+
+            // Undo / Redo
+            undoBtn.addEventListener('click', () => {
+                if (state.history.length > 0) {
+                    state.redoStack.push(JSON.stringify(state.elements));
+                    state.elements = JSON.parse(state.history.pop());
+                    updateUndoRedoButtons();
+                    renderCanvas();
+                }
+            });
+            redoBtn.addEventListener('click', () => {
+                if (state.redoStack.length > 0) {
+                    state.history.push(JSON.stringify(state.elements));
+                    state.elements = JSON.parse(state.redoStack.pop());
+                    updateUndoRedoButtons();
+                    renderCanvas();
+                }
+            });
+
+            // Keyboard Arrow Key Nudges & Shortcuts
+            window.addEventListener('keydown', (e) => {
+                if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+
+                const el = getSelectedElement();
+                const step = e.shiftKey ? 10 : 1;
+
+                if (el && !el.locked) {
+                    if (e.key === 'ArrowLeft') { e.preventDefault(); el.x = Math.max(0, el.x - step); renderCanvas(); }
+                    if (e.key === 'ArrowRight') { e.preventDefault(); el.x += step; renderCanvas(); }
+                    if (e.key === 'ArrowUp') { e.preventDefault(); el.y = Math.max(0, el.y - step); renderCanvas(); }
+                    if (e.key === 'ArrowDown') { e.preventDefault(); el.y += step; renderCanvas(); }
+                }
+
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undoBtn.click(); }
+                if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redoBtn.click(); }
+                if ((e.key === 'Delete' || e.key === 'Backspace') && el) { deleteSelectedElement(); }
+            });
+
+            // Modals & Exporting
+            previewBtn.addEventListener('click', openPreview);
+            document.getElementById('closePreviewBtn').addEventListener('click', () => previewModal.classList.add('hidden'));
+            document.getElementById('closePreviewModalBtn').addEventListener('click', () => previewModal.classList.add('hidden'));
+            document.getElementById('modalPrintBtn').addEventListener('click', () => { window.print(); });
+            printBtn.addEventListener('click', () => { window.print(); });
+            downloadPdfBtn.addEventListener('click', exportToPDF);
+
+            // Batch Modal
+            document.getElementById('batchModalBtn').addEventListener('click', () => document.getElementById('batchModal').classList.remove('hidden'));
+            document.getElementById('closeBatchBtn').addEventListener('click', () => document.getElementById('batchModal').classList.add('hidden'));
+            document.getElementById('closeBatchModalBtn').addEventListener('click', () => document.getElementById('batchModal').classList.add('hidden'));
+        }
+
+        function hideContextMenu() { contextMenu.style.display = 'none'; }
+
+        function alignSelected(type) {
+            const el = getSelectedElement();
+            if (!el || el.locked) return;
+            saveHistory();
+            const canvasW = state.customWidth * MM_TO_PX;
+            const canvasH = state.customHeight * MM_TO_PX;
+
+            if (type === 'left') el.x = 0;
+            if (type === 'right') el.x = Math.round(canvasW - el.width);
+            if (type === 'centerH') el.x = Math.round((canvasW - el.width) / 2);
+            if (type === 'centerV') el.y = Math.round((canvasH - el.height) / 2);
+            renderCanvas();
+        }
+
+        function deleteSelectedElement() {
+            if (state.selectedId) {
+                saveHistory();
+                state.elements = state.elements.filter(el => el.id !== state.selectedId);
+                state.selectedId = null;
+                renderCanvas();
+            }
+        }
+
+        function duplicateSelectedElement() {
+            const el = getSelectedElement();
+            if (el) {
+                saveHistory();
+                const clone = JSON.parse(JSON.stringify(el));
+                clone.id = 'el-' + Date.now();
+                clone.x += 10;
+                clone.y += 10;
+                state.elements.push(clone);
+                state.selectedId = clone.id;
+                renderCanvas();
+            }
+        }
+
+        function getSelectedElement() {
+            return state.elements.find(el => el.id === state.selectedId);
+        }
+
+        function updateDimensions() {
+            const widthPx = state.customWidth * MM_TO_PX;
+            const heightPx = state.customHeight * MM_TO_PX;
+
+            workspaceContainer.style.width = widthPx + 'px';
+            workspaceContainer.style.height = heightPx + 'px';
+            labelCanvas.style.width = widthPx + 'px';
+            labelCanvas.style.height = heightPx + 'px';
+
+            renderCanvas();
+        }
+
+        function updateZoom() {
+            zoomLevelSpan.textContent = Math.round(state.zoom * 100) + '%';
+            workspaceContainer.style.transform = `scale(${state.zoom})`;
+        }
+
+        function renderCanvas() {
+            labelCanvas.innerHTML = '';
+            
+            // Sort by zIndex
+            state.elements.sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1));
+
+            state.elements.forEach(el => {
+                createDomElement(el, el.x, el.y, el.id === state.selectedId);
+            });
+            updateInspector();
+        }
+
+        function createDomElement(elData, posX, posY, isSelected) {
+            const div = document.createElement('div');
+            div.className = `label-element ${isSelected ? 'selected' : ''} ${elData.locked ? 'locked' : ''}`;
+            div.style.left = posX + 'px';
+            div.style.top = posY + 'px';
+            div.style.width = elData.width + 'px';
+            div.style.height = elData.height + 'px';
+            div.style.zIndex = elData.zIndex || 1;
+            div.dataset.id = elData.id;
+
+            if (elData.type === 'text') {
+                const inner = document.createElement('div');
+                inner.className = `w-full h-full flex items-center overflow-hidden font-${elData.fontFamily.replace(/\s+/g, '-')}`;
+                inner.style.fontSize = elData.fontSize + 'px';
+                inner.style.fontWeight = elData.bold ? 'bold' : 'normal';
+                inner.style.fontStyle = elData.italic ? 'italic' : 'normal';
+                inner.style.textDecoration = elData.underline ? 'underline' : 'none';
+                inner.style.justifyContent = elData.align === 'center' ? 'center' : (elData.align === 'right' ? 'flex-end' : 'flex-start');
+                inner.style.textAlign = elData.align;
+                
+                let textToShow = elData.content;
+                if (elData.uppercase) textToShow = textToShow.toUpperCase();
+                inner.textContent = textToShow;
+                div.appendChild(inner);
+
+                div.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    if (elData.locked) return;
+                    const newText = prompt('Edit text content:', elData.content);
+                    if (newText !== null) {
+                        saveHistory();
+                        elData.content = newText;
+                        renderCanvas();
+                    }
+                });
+            } else if (elData.type === 'barcode') {
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('class', 'w-full h-full');
+                div.appendChild(svg);
+                try {
+                    JsBarcode(svg, elData.content || '123456', {
+                        format: elData.format || "CODE128",
+                        displayValue: true,
+                        fontSize: elData.textSize || 12,
+                        margin: 2,
+                        width: 1.5,
+                        height: elData.height - 20
+                    });
+                } catch (err) {}
+            } else if (elData.type === 'qrcode') {
+                const canvas = document.createElement('canvas');
+                canvas.className = 'w-full h-full';
+                div.appendChild(canvas);
+                QRCode.toCanvas(canvas, elData.content || 'https://lalithanaturals.com', { width: elData.width, margin: 1 });
+            } else if (elData.type === 'image') {
+                const img = document.createElement('img');
+                img.src = elData.content;
+                img.className = 'w-full h-full object-contain pointer-events-none';
+                div.appendChild(img);
+            } else if (elData.type === 'box') {
+                div.style.border = '2px solid #1e293b';
+            }
+
+            // Sizing handles when selected
+            if (isSelected && !elData.locked) {
+                const handles = ['tl', 'tr', 'bl', 'br'];
+                handles.forEach(h => {
+                    const handle = document.createElement('div');
+                    handle.className = `resize-handle handle-${h}`;
+                    handle.addEventListener('mousedown', (e) => {
+                        e.stopPropagation();
+                        const startX = e.clientX;
+                        const startY = e.clientY;
+                        const origW = elData.width;
+                        const origH = elData.height;
+                        const origX = elData.x;
+                        const origY = elData.y;
+
+                        function onResizeMove(moveEvent) {
+                            const dx = (moveEvent.clientX - startX) / state.zoom;
+                            const dy = (moveEvent.clientY - startY) / state.zoom;
+
+                            if (h === 'br') {
+                                elData.width = Math.max(15, Math.round(origW + dx));
+                                elData.height = Math.max(15, Math.round(origH + dy));
+                            } else if (h === 'bl') {
+                                elData.width = Math.max(15, Math.round(origW - dx));
+                                elData.height = Math.max(15, Math.round(origH + dy));
+                                elData.x = Math.round(origX + dx);
+                            } else if (h === 'tr') {
+                                elData.width = Math.max(15, Math.round(origW + dx));
+                                elData.height = Math.max(15, Math.round(origH - dy));
+                                elData.y = Math.round(origY + dy);
+                            } else if (h === 'tl') {
+                                elData.width = Math.max(15, Math.round(origW - dx));
+                                elData.height = Math.max(15, Math.round(origH - dy));
+                                elData.x = Math.round(origX + dx);
+                                elData.y = Math.round(origY + dy);
+                            }
+                            renderCanvas();
+                        }
+
+                        function onResizeUp() {
+                            window.removeEventListener('mousemove', onResizeMove);
+                            window.removeEventListener('mouseup', onResizeUp);
+                            saveHistory();
+                        }
+
+                        window.addEventListener('mousemove', onResizeMove);
+                        window.addEventListener('mouseup', onResizeUp);
+                    });
+                    div.appendChild(handle);
+                });
+            }
+
+            // Dragging & Mouse Events
+            div.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return; // Left click only
+                state.selectedId = elData.id;
+                renderCanvas();
+
+                if (elData.locked) return;
+
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const origX = elData.x;
+                const origY = elData.y;
+
+                function onMouseMove(moveEvent) {
+                    const dx = (moveEvent.clientX - startX) / state.zoom;
+                    const dy = (moveEvent.clientY - startY) / state.zoom;
+                    
+                    let newX = Math.round(origX + dx);
+                    let newY = Math.round(origY + dy);
+
+                    // Snap Grid
+                    if (state.snapGrid) {
+                        newX = Math.round(newX / state.gridSize) * state.gridSize;
+                        newY = Math.round(newY / state.gridSize) * state.gridSize;
+                    }
+
+                    // Smart Snap Guidelines to Center
+                    const canvasW = state.customWidth * MM_TO_PX;
+                    const canvasH = state.customHeight * MM_TO_PX;
+                    const centerSnapX = Math.round((canvasW - elData.width) / 2);
+                    const centerSnapY = Math.round((canvasH - elData.height) / 2);
+
+                    if (Math.abs(newX - centerSnapX) < 4) {
+                        newX = centerSnapX;
+                        guideV.style.left = (canvasW / 2) + 'px';
+                        guideV.classList.remove('hidden');
+                    } else { guideV.classList.add('hidden'); }
+
+                    if (Math.abs(newY - centerSnapY) < 4) {
+                        newY = centerSnapY;
+                        guideH.style.top = (canvasH / 2) + 'px';
+                        guideH.classList.remove('hidden');
+                    } else { guideH.classList.add('hidden'); }
+
+                    elData.x = Math.max(0, newX);
+                    elData.y = Math.max(0, newY);
+                    div.style.left = elData.x + 'px';
+                    div.style.top = elData.y + 'px';
+                }
+
+                function onMouseUp() {
+                    window.removeEventListener('mousemove', onMouseMove);
+                    window.removeEventListener('mouseup', onMouseUp);
+                    guideH.classList.add('hidden');
+                    guideV.classList.add('hidden');
+                    saveHistory();
+                }
+
+                window.addEventListener('mousemove', onMouseMove);
+                window.addEventListener('mouseup', onMouseUp);
+            });
+
+            // Right-Click Context Menu Trigger
+            div.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                state.selectedId = elData.id;
+                renderCanvas();
+                contextMenu.style.left = e.clientX + 'px';
+                contextMenu.style.top = e.clientY + 'px';
+                contextMenu.style.display = 'block';
+            });
+
+            labelCanvas.appendChild(div);
+        }
+
+        function updateInspector() {
+            const el = getSelectedElement();
+            if (!el) {
+                inspectorPanel.style.opacity = '0.4';
+                inspectorPanel.style.pointerEvents = 'none';
+                selectedElementType.textContent = 'None';
+                return;
+            }
+
+            inspectorPanel.style.opacity = '1';
+            inspectorPanel.style.pointerEvents = 'auto';
+            selectedElementType.textContent = el.type.toUpperCase();
+
+            lockIcon.className = el.locked ? "fa-solid fa-lock-open text-emerald-400" : "fa-solid fa-lock text-amber-400";
+            lockStatusText.textContent = el.locked ? "Unlock Element" : "Lock Element";
+
+            if (el.type === 'text') {
+                propTextContentGroup.classList.remove('hidden');
+                propTextFormattingGroup.classList.remove('hidden');
+                propBarcodeOptionsGroup.classList.add('hidden');
+
+                propTextContent.value = el.content;
+                propFontFamily.value = el.fontFamily;
+                propFontSize.value = el.fontSize;
+
+                styleBold.classList.toggle('bg-blue-600', el.bold);
+                styleItalic.classList.toggle('bg-blue-600', el.italic);
+                styleUnderline.classList.toggle('bg-blue-600', el.underline);
+                styleUppercase.classList.toggle('bg-blue-600', el.uppercase);
+
+                alignLeft.classList.toggle('bg-blue-600', el.align === 'left');
+                alignCenter.classList.toggle('bg-blue-600', el.align === 'center');
+                alignRight.classList.toggle('bg-blue-600', el.align === 'right');
+            } else if (el.type === 'barcode') {
+                propTextContentGroup.classList.remove('hidden');
+                propTextFormattingGroup.classList.add('hidden');
+                propBarcodeOptionsGroup.classList.remove('hidden');
+
+                propTextContent.value = el.content;
+                propBarcodeFormat.value = el.format || 'CODE128';
+                propBarcodeTextSize.value = el.textSize || 12;
+            } else if (el.type === 'qrcode') {
+                propTextContentGroup.classList.remove('hidden');
+                propTextFormattingGroup.classList.add('hidden');
+                propBarcodeOptionsGroup.classList.add('hidden');
+
+                propTextContent.value = el.content;
+            } else {
+                propTextContentGroup.classList.add('hidden');
+                propTextFormattingGroup.classList.add('hidden');
+                propBarcodeOptionsGroup.classList.add('hidden');
+            }
+        }
+
+        // Build clean preview buffer
+        function buildPrintBuffer(containerEl) {
+            containerEl.innerHTML = '';
+            const widthPx = state.customWidth * MM_TO_PX;
+            const heightPx = state.customHeight * MM_TO_PX;
+
+            containerEl.style.width = (state.layoutMode === '2up' ? (widthPx * 2) + 20 : widthPx) + 'px';
+            containerEl.style.height = heightPx + 'px';
+            containerEl.style.position = 'relative';
+            containerEl.style.backgroundColor = '#ffffff';
+
+            const lbl1 = document.createElement('div');
+            lbl1.style.position = 'absolute';
+            lbl1.style.left = '0px';
+            lbl1.style.top = '0px';
+            lbl1.style.width = widthPx + 'px';
+            lbl1.style.height = heightPx + 'px';
+            renderElementsInto(lbl1);
+            containerEl.appendChild(lbl1);
+
+            if (state.layoutMode === '2up') {
+                const divider = document.createElement('div');
+                divider.style.position = 'absolute';
+                divider.style.left = widthPx + 'px';
+                divider.style.top = '0px';
+                divider.style.bottom = '0px';
+                divider.style.borderLeft = '2px dashed #cbd5e1';
+                containerEl.appendChild(divider);
+
+                const lbl2 = document.createElement('div');
+                lbl2.style.position = 'absolute';
+                lbl2.style.left = (widthPx + 20) + 'px';
+                lbl2.style.top = '0px';
+                lbl2.style.width = widthPx + 'px';
+                lbl2.style.height = heightPx + 'px';
+                renderElementsInto(lbl2);
+                containerEl.appendChild(lbl2);
+            }
+        }
+
+        function renderElementsInto(parent) {
+            state.elements.forEach(elData => {
+                const div = document.createElement('div');
+                div.style.position = 'absolute';
+                div.style.left = elData.x + 'px';
+                div.style.top = elData.y + 'px';
+                div.style.width = elData.width + 'px';
+                div.style.height = elData.height + 'px';
+
+                if (elData.type === 'text') {
+                    const inner = document.createElement('div');
+                    inner.className = `w-full h-full flex items-center overflow-hidden font-${elData.fontFamily.replace(/\s+/g, '-')}`;
+                    inner.style.fontSize = elData.fontSize + 'px';
+                    inner.style.fontWeight = elData.bold ? 'bold' : 'normal';
+                    inner.style.fontStyle = elData.italic ? 'italic' : 'normal';
+                    inner.style.textDecoration = elData.underline ? 'underline' : 'none';
+                    inner.style.justifyContent = elData.align === 'center' ? 'center' : (elData.align === 'right' ? 'flex-end' : 'flex-start');
+                    inner.style.textAlign = elData.align;
+                    
+                    let textToShow = elData.content;
+                    if (elData.uppercase) textToShow = textToShow.toUpperCase();
+                    inner.textContent = textToShow;
+                    div.appendChild(inner);
+                } else if (elData.type === 'barcode') {
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.setAttribute('class', 'w-full h-full');
+                    div.appendChild(svg);
+                    try {
+                        JsBarcode(svg, elData.content || '123456', {
+                            format: elData.format || "CODE128",
+                            displayValue: true,
+                            fontSize: elData.textSize || 12,
+                            margin: 2,
+                            width: 1.5,
+                            height: elData.height - 20
+                        });
+                    } catch (err) {}
+                } else if (elData.type === 'qrcode') {
+                    const canvas = document.createElement('canvas');
+                    canvas.className = 'w-full h-full';
+                    div.appendChild(canvas);
+                    QRCode.toCanvas(canvas, elData.content || 'https://lalithanaturals.com', { width: elData.width, margin: 1 });
+                } else if (elData.type === 'image') {
+                    const img = document.createElement('img');
+                    img.src = elData.content;
+                    img.className = 'w-full h-full object-contain';
+                    div.appendChild(img);
+                } else if (elData.type === 'box') {
+                    div.style.border = '2px solid #1e293b';
+                }
+                parent.appendChild(div);
+            });
+        }
+
+        function openPreview() {
+            buildPrintBuffer(previewContainer);
+            previewModal.classList.remove('hidden');
+        }
+
+        async function exportToPDF() {
+            const tempBuffer = document.createElement('div');
+            tempBuffer.style.position = 'absolute';
+            tempBuffer.style.left = '-9999px';
+            document.body.appendChild(tempBuffer);
+
+            buildPrintBuffer(tempBuffer);
+
+            try {
+                const canvas = await html2canvas(tempBuffer.firstElementChild, { scale: 2, useCORS: true });
+                const imgData = canvas.toDataURL('image/png');
+
+                const { jsPDF } = window.jspdf;
+                const totalW = state.layoutMode === '2up' ? (state.customWidth * 2) + 20 : state.customWidth;
+                const pdf = new jsPDF({
+                    orientation: totalW > state.customHeight ? 'landscape' : 'portrait',
+                    unit: 'mm',
+                    format: [totalW, state.customHeight]
+                });
+
+                pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
+                pdf.save('label-print.pdf');
+            } catch (err) {
+                console.error('PDF export failed:', err);
+                alert('Failed to generate PDF.');
+            } finally {
+                document.body.removeChild(tempBuffer);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
