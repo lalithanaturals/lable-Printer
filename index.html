@@ -423,7 +423,7 @@ body:not(.thermal) #thermalView{display:none!important}
     </div>
     <button class="modebtn" id="setBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="lbl">Settings</span></button>
     <button class="modebtn" id="modeBtn"></button>
-    <div class="tb adv-only"><button class="btn" id="aNew" title="Start a new blank label">+ New blank</button><button class="btn" id="aDesigns">Designs</button><button class="btn" id="aTidy">Tidy spacing</button><button class="btn pastebtn" hidden>Paste</button><button class="btn bordbtn">Border</button><button class="btn sharebtn" data-share="1">Share</button></div>
+    <div class="tb adv-only"><button class="btn" id="aNew" title="Start a new blank label">+ New blank</button><button class="btn" id="aDesigns">Designs</button><button class="btn storebtn">🏪 Store prints</button><button class="btn" id="aTidy">Tidy spacing</button><button class="btn pastebtn" hidden>Paste</button><button class="btn bordbtn">Border</button><button class="btn sharebtn" data-share="1">Share</button></div>
     <div class="tb adv-only" style="position:relative">
       <button class="btn" id="tplBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>Templates</button>
       <div class="pop" id="tplPop" hidden></div>
@@ -444,6 +444,7 @@ body:not(.thermal) #thermalView{display:none!important}
       <button class="plainb sharebtn" data-share="1" style="height:38px">Share</button>
       <button class="plainb" id="sOrient" style="height:38px" title="Switch portrait / landscape"></button>
       <button class="plainb bordbtn" style="height:38px" title="Change the border">Border</button>
+      <button class="plainb storebtn" style="height:38px">🏪 Store prints</button>
       <button class="plainb pastebtn" style="height:38px" hidden>Paste</button>
       <span id="sSaveBox" class="row"></span>
       <div class="spacer"></div>
@@ -672,6 +673,12 @@ body:not(.thermal) #thermalView{display:none!important}
   <div class="dialog" role="dialog" aria-labelledby="storeTitle" style="width:min(820px,100%)">
     <div class="dhead"><h2 id="storeTitle">Store prints</h2><button class="closebtn" id="storeClose" aria-label="Close">✕ Close</button></div>
     <div class="setbody" id="storeBody"></div>
+  </div>
+</div>
+<div class="modal" id="cardModal" hidden>
+  <div class="dialog" role="dialog" aria-labelledby="cardTitle" style="width:min(1000px,100%)">
+    <div class="dhead"><h2 id="cardTitle">Offer cards</h2><button class="closebtn" id="cardClose" aria-label="Close">✕ Close</button></div>
+    <div id="cardBody" style="overflow:auto;min-height:0;flex:1"></div>
   </div>
 </div>
 <div class="modal" id="askModal" hidden>
@@ -13803,6 +13810,8 @@ function elHTML(el, u, extra = ""){
   } else if (el.type === "qr"){
     const svg = qrSVG(el.data, el.ecl, el.color, el.bg, el.quiet, el.binary);
     inner = svg || `<div class="err">Too much data for a QR code</div>`;
+  } else if (el.type === "roster" || el.type === "list3"){
+    inner = `<div style="width:100%;height:100%;overflow:hidden">${el.type === "roster" ? rosterHTML(el, u) : list3HTML(el, u)}</div>`;
   } else if (el.type === "expiry"){
     const fam = `'${el.font}',${FALLBACK(el.font)}`;
     inner = el.exp.mode === "list" ? `<div style="width:100%;height:100%;overflow:hidden">${expListHTML(el.exp, u, el.size * PT, fam, el.color)}</div>`
@@ -13894,7 +13903,7 @@ const IC = {
 };
 const num = (key, label, step = 0.5, extra = "") => `<label class="f"><span>${label}</span><input type="number" data-k="${key}" step="${step}" ${extra}></label>`;
 const color = (key, label) => `<label class="f"><span>${label}</span><input type="color" data-k="${key}"></label>`;
-const TYPE_NAME = {text:"Text", image:"Image", barcode:"Barcode", qr:"QR code", shape:"Shape", expiry:"Expiry date"};
+const TYPE_NAME = {text:"Text", image:"Image", barcode:"Barcode", qr:"QR code", shape:"Shape", expiry:"Expiry date", roster:"Staff list", list3:"List"};
 const EXPEL = (o) => Object.assign({id:uid(), type:"expiry", x:3, y:3, w:40, h:8, rot:0, locked:false, font:S.prefs.font || "Poppins", size:7, bold:true, align:"center", color:"#000000", lh:1.3, exp:newExp("single")}, o);
 
 const LICON = {text:"T", image:"🖼", barcode:"▥", qr:"▦", shape:"▭", expiry:"📅"};
@@ -13959,6 +13968,9 @@ function renderProps(){
       <div class="field">${num("fs","Number size (pt)",0.5,'min="3"')}${color("color","Colour")}</div>
       ${barcodeSVG(el) ? "" : `<p class="note bad">${esc(BC_HINT[el.format])}</p>`}
     </div>`;
+  }
+  if (el.type === "roster" || el.type === "list3"){
+    h += `<div class="stack"><button class="btn primary" id="storeEdit" style="justify-content:center">Edit list</button><div class="field">${num("size","Size (pt)",0.5,'min="3"')}${color("color","Colour")}</div></div>`;
   }
   if (el.type === "expiry"){
     h += `<div class="stack"><button class="btn primary" id="expEdit" style="justify-content:center">Edit days &amp; dates</button>
@@ -14172,6 +14184,7 @@ $("#props").addEventListener("click", e => {
   if (b.id === "imgRatio") imgRatio(el);
   if (b.id === "qrEdit") openQr(el);
   if (b.id === "expEdit") openExp(el, "label");
+  if (b.id === "storeEdit"){ el.type === "roster" ? openStaffForm(el) : openListForm(el); }
 });
 
 function alignEl(el, how){
@@ -14346,6 +14359,7 @@ L.addEventListener("dblclick", e => {
   if (el.type === "text" && !el.locked) startEdit(el);
   if (el.type === "qr") openQr(el);
   if (el.type === "expiry") openExp(el, "label");
+  if (el.type === "roster") openStaffForm(el); if (el.type === "list3") openListForm(el);
   if (el.type === "barcode") $("#props [data-k=value]")?.focus();
 });
 function startEdit(el, caretEnd){
@@ -14371,7 +14385,7 @@ document.addEventListener("keydown", e => {
   const tag = document.activeElement?.tagName; const typing = /INPUT|TEXTAREA|SELECT/.test(tag) || document.activeElement?.isContentEditable;
   const mod = e.ctrlKey || e.metaKey;
   if (mod && e.key.toLowerCase() === "p"){ e.preventDefault(); doPrint(); return; }
-  if (e.key === "Escape"){ if (!$("#storeModal").hidden){ $("#storeModal").hidden = true; ST = null; return; } if (!$("#expModal").hidden){ closeExp(); return; } if (!$("#askModal").hidden){ $("#askModal").hidden = true; return; } if (!$("#shareModal").hidden){ $("#shareModal").hidden = true; return; } if (!$("#galModal").hidden){ closeGal(); return; } if (!$("#setModal").hidden){ $("#setClose").click(); return; } if (!$("#qrModal").hidden) closeQr(); else if (S.editing) finishEdit(); else if (S.sel){ S.sel = null; renderCanvas(); renderProps(); } return; }
+  if (e.key === "Escape"){ if (!$("#cardModal").hidden){ $("#cardModal").hidden = true; CP = null; return; } if (!$("#storeModal").hidden){ $("#storeModal").hidden = true; ST = null; return; } if (!$("#expModal").hidden){ closeExp(); return; } if (!$("#askModal").hidden){ $("#askModal").hidden = true; return; } if (!$("#shareModal").hidden){ $("#shareModal").hidden = true; return; } if (!$("#galModal").hidden){ closeGal(); return; } if (!$("#setModal").hidden){ $("#setClose").click(); return; } if (!$("#qrModal").hidden) closeQr(); else if (S.editing) finishEdit(); else if (S.sel){ S.sel = null; renderCanvas(); renderProps(); } return; }
   if (typing) return;
   if (mod && e.key.toLowerCase() === "a" && S.mode !== "simple"){ e.preventDefault(); S.multi = els().filter(x => !x.hide).map(x => x.id); S.sel = S.multi[0] || null; renderCanvas(); renderProps(); return; }
   if ((e.key === "Delete" || e.key === "Backspace") && (S.multi || []).length > 1){ e.preventDefault(); snapshot(); S.designs[S.size] = els().filter(x => !S.multi.includes(x.id)); S.multi = []; S.sel = null; renderCanvas(); renderProps(); save(); return; }
@@ -14720,6 +14734,8 @@ function renderFloat(){
     h += (el.binary ? `<span class="fcap">QR from a file</span>` : `<input class="fin" data-f="data" value="${esc(el.data)}" placeholder="Link or text" spellcheck="false">`) + `<span class="fsep"></span>` + sizeGrp;
   } else if (t === "image"){
     h += `<button class="fb" data-f="replace">Change picture</button><span class="fsep"></span>` + sizeGrp;
+  } else if (t === "roster" || t === "list3"){
+    h += `<button class="fb" data-f="storeedit">📝 Edit list</button><span class="fsep"></span>` + sizeGrp.replace('<button class="fb big" data-f="bigger"', `<span class="fsz">${r2(el.size)}</span><button class="fb big" data-f="bigger"`);
   } else if (t === "expiry"){
     h += `<button class="fb" data-f="exp">📅 Days &amp; dates</button><span class="fsep"></span>` + sizeGrp.replace('<button class="fb big" data-f="bigger"', `<span class="fsz">${r2(el.size)}</span><button class="fb big" data-f="bigger"`);
   } else h += sizeGrp;
@@ -14756,6 +14772,7 @@ $("#ftb").addEventListener("click", e => {
   const f = b.dataset.f;
   if (f === "edit"){ startEdit(el, true); return; }
   if (f === "exp"){ openExp(el, "label"); return; }
+  if (f === "storeedit"){ el.type === "roster" ? openStaffForm(el) : openListForm(el); return; }
   if (f === "copy"){ if (S.editing){ const t = $(`#label [data-id="${el.id}"] .t`); if (t) el.text = t.innerText.replace(/\n$/, ""); } copyObj(); return; }
   if (f === "done"){ finishEdit(); return; }
   if (f === "replace"){ pickImage(src => { snapshot(); el.src = src; renderCanvas(); save(); }); return; }
@@ -14764,7 +14781,7 @@ $("#ftb").addEventListener("click", e => {
   snapshot();
   if (f === "smaller" || f === "bigger"){
     const d = f === "bigger" ? 1 : -1;
-    if (el.type === "text" || el.type === "expiry") el.size = r2(Math.max(3, el.size + d * (el.size < 10 ? 0.5 : 1)));
+    if (el.type === "text" || el.type === "expiry" || el.type === "roster" || el.type === "list3") el.size = r2(Math.max(3, el.size + d * (el.size < 10 ? 0.5 : 1)));
     else { const sc = d > 0 ? 1.08 : 1 / 1.08, cx = el.x + el.w / 2, cy = el.y + el.h / 2;
       el.w = r2(Math.min(el.w * sc, cfg().w)); el.h = r2(el.type === "qr" ? el.w : el.h * sc);
       el.x = r2(Math.max(0, cx - el.w / 2)); el.y = r2(Math.max(0, cy - el.h / 2)); }
@@ -15028,7 +15045,7 @@ function galFilter(){
     if (GV.cat && d.cat !== GV.cat) continue; if (GV.style && d.theme !== GV.style) continue;
     if (q && !q.split(/\s+/).every(w => GV.texts[i].includes(w))) continue;
     GV.filtered.push(i); }
-  $$("#galSaved .gcard, #galRecent .reccard, #galFiles .reccard").forEach(c => c.hidden = !!q && !c.dataset.q.includes(q));
+  $$("#galSaved .gcard, #galRecent .reccard, #galFiles .reccard").forEach(c => c.hidden = (!!q && !c.dataset.q.includes(q)) || (GV.style === "Offer cards" && c.dataset.cards === "0"));
 
   $("#galSavedWrap").hidden = !$$("#galSaved .gcard:not([hidden])").length;
   $("#galGrid").innerHTML = ""; GV.shown = 0; galMore();
@@ -15405,15 +15422,9 @@ function tBlockHTML(b, u, c, edit){
     h = b.exp.mode === "list" ? expListHTML(b.exp, u, b.size * PT, fam, b.color || "#000")
       : `<div style="font-family:${fam};font-size:${u(b.size * PT)};font-weight:${b.bold ? 700 : 400};text-align:${b.align};white-space:pre-wrap;line-height:1.35;color:${b.color || "#000"}">${esc(expLines(b.exp))}</div>`;
   } else if (b.t === "roster"){
-    const fs = b.size * PT, fam = `'${b.font}',${FALLBACK(b.font)}`, col = b.color || "#000";
-    const g = `display:grid;grid-template-columns:${u(fs * 2.2)} minmax(0,1fr) minmax(0,0.8fr);column-gap:${u(fs * 0.6)};align-items:start`;
-    h = `<div style="font-family:${fam};font-size:${u(fs)};color:${col};line-height:1.25">
-      <div style="${g};font-weight:700;border-top:${u(0.4)} solid ${col};border-bottom:${u(0.4)} solid ${col};padding:${u(fs * 0.25)} 0">${b.hdr.map((t2, i) => `<span style="${i === 2 ? "text-align:right" : ""}">${esc(t2)}</span>`).join("")}</div>
-      ${b.rows.map((r, i) => `<div style="${g};padding:${u(fs * 0.35)} 0;border-bottom:${u(0.2)} ${b.dashed === false ? "solid" : "dashed"} ${col}">
-        <span style="font-weight:700">${i + 1}.</span>
-        <span><b>${esc(r.name || "")}</b>${r.off ? `<br><span style="font-size:${u(fs * 0.82)}">${esc(b.offLabel || "Week off")}: <b>${esc(r.off)}</b></span>` : ""}</span>
-        <span style="text-align:right">${esc(r.desig || "")}</span></div>`).join("")}
-    </div>`;
+    h = rosterHTML(b, u);
+  } else if (b.t === "list3"){
+    h = list3HTML(b, u);
   } else if (b.t === "badge"){
     const bg = b.bg || "#000", fg = b.fg || "#fff", d = Math.min(W, b.size);
     h = `<div class="tt"${ce} data-ph="Badge" style="margin:0 auto;width:${u(d)};height:${u(d)};border-radius:50%;${b.outline ? `border:${u(0.8)} solid ${bg};color:${bg};` : `background:${bg};color:${fg};`}display:flex;align-items:center;justify-content:center;text-align:center;${font(b.font || "Poppins")};font-weight:800;font-size:${u((b.fs || 14) * PT)};line-height:1.05;white-space:pre-wrap;padding:${u(d * 0.12)};box-sizing:border-box">${esc(b.text)}</div>`;
@@ -15535,11 +15546,13 @@ function renderTFloat(){
       `<button class="fb" data-g="addrow">+ Row</button><button class="fb" data-g="delrow">− Row</button>`;
   } else if (b.t === "roster"){
     h += `<button class="fb" data-g="roster">👥 Edit staff</button>` + sep + sz(r2(b.size));
+  } else if (b.t === "list3"){
+    h += `<button class="fb" data-g="list3">📝 Edit list</button>` + sep + sz(r2(b.size));
   } else if (b.t === "expiry"){
     h += `<button class="fb" data-g="exp">📅 Days &amp; dates</button>` + sep + sz(r2(b.size)) + sep + `<button class="fb" data-g="bold" aria-pressed="${!!b.bold}"><b>B</b></button>`;
   } else if (b.t === "cards"){
     h += sz(r2(b.size)) + sep + `<span class="fcap">Columns</span><button class="fb" data-g="colm">−</button><span class="fsz">${b.cols}</span><button class="fb" data-g="colp">+</button>` + sep +
-      `<button class="fb" data-g="addcard">+ Card</button><button class="fb" data-g="delcard">− Card</button><button class="fb" data-g="border" aria-pressed="${!!b.border}">Border</button>`;
+      `<button class="fb" data-g="cardstyle">🎨 Style</button><button class="fb" data-g="addcard">+ Card</button><button class="fb" data-g="delcard">− Card</button><button class="fb" data-g="border" aria-pressed="${!!b.border}">Border</button>`;
   } else if (b.t === "line"){
     h += `<button class="fb" data-g="solid" aria-pressed="${!b.dashed}">Solid</button><button class="fb" data-g="dashed" aria-pressed="${!!b.dashed}">Dashed</button>` + sep + `<span class="fcap">Thickness</span>` + sz(null);
   } else if (b.t === "space"){
@@ -15641,11 +15654,13 @@ $("#tFtb").addEventListener("click", e => {
   if (g === "copy"){ copyObj(); return; }
   if (g === "exp"){ openExp(b, "flow"); return; }
   if (g === "roster"){ openStaffForm(b); return; }
+  if (g === "cardstyle"){ openCardPicker(b); return; }
+  if (g === "list3"){ openListForm(b); return; }
   if (g === "qrtools"){ openQr(null); QS.tTarget = b.id; if (!b.binary){ QS.tab = "text"; QS.fields.text = b.data; renderQrForm(); } return; }
   tsnap();
   const d = g === "bigger" ? 1 : g === "smaller" ? -1 : 0;
   if (d){
-    if (b.t === "text" || b.t === "table" || b.t === "cards" || b.t === "expiry" || b.t === "roster") b.size = r2(Math.max(5, Math.min(90, b.size + d * (b.size < 12 ? 0.5 : b.size < 24 ? 1 : 2))));
+    if (b.t === "text" || b.t === "table" || b.t === "cards" || b.t === "expiry" || b.t === "roster" || b.t === "list3") b.size = r2(Math.max(5, Math.min(90, b.size + d * (b.size < 12 ? 0.5 : b.size < 24 ? 1 : 2))));
     if (b.t === "line") b.th = r2(Math.max(0.2, Math.min(2, b.th + d * 0.2)));
     if (b.t === "space") b.h = Math.max(1, Math.min(40, b.h + d));
     if (b.t === "barcode"){ b.h = Math.max(6, Math.min(40, b.h + d * 2)); b.wpct = Math.max(40, Math.min(100, b.wpct + d * 5)); b.fs = r2(Math.max(6, Math.min(14, b.fs + d * 0.5))); }
@@ -15706,7 +15721,7 @@ $$("[data-tadd]").forEach(btn => btn.onclick = () => {
   if (k2 === "h") tInsert(TH("Heading", fs ? fs * 1.6 : 18 * A));
   if (k2 === "p") tInsert(TP("Type your text here. It can be as long as you need.", fs || 10.5 * A));
   if (k2 === "price") tInsert(TPR("₹0", 30 * A));
-  if (k2 === "cards") tInsert(TC([{tag:"10% OFF", name:"Item name", old:"₹200", price:"₹180", note:""},{tag:"10% OFF", name:"Item name", old:"₹200", price:"₹180", note:""},{tag:"10% OFF", name:"Item name", old:"₹200", price:"₹180", note:""}], A > 1 ? 3 : 1, A > 1 ? 16 : 11));
+  if (k2 === "cards") openCardPicker(null);
   if (k2 === "table") tInsert(TT([["Item","₹0"],["Item","₹0"],["Item","₹0"]], fs || 11 * A));
   if (k2 === "line") tInsert(TL());
   if (k2 === "space") tInsert(TS(5));
@@ -15728,7 +15743,7 @@ function tKeys(e){
   const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
   const mod = e.ctrlKey || e.metaKey;
   if (mod && e.key.toLowerCase() === "p"){ e.preventDefault(); tPrint(); return true; }
-  if (e.key === "Escape"){ if (!$("#galModal").hidden || !$("#setModal").hidden || !$("#qrModal").hidden || !$("#shareModal").hidden || !$("#askModal").hidden || !$("#expModal").hidden || !$("#storeModal").hidden) return false;
+  if (e.key === "Escape"){ if (!$("#galModal").hidden || !$("#setModal").hidden || !$("#qrModal").hidden || !$("#shareModal").hidden || !$("#askModal").hidden || !$("#expModal").hidden || !$("#storeModal").hidden || !$("#cardModal").hidden) return false;
     if (S.tsel){ S.tsel = null; document.activeElement?.blur?.(); renderThermal(); } return true; }
   if (typing) return true;
   if (mod && e.key.toLowerCase() === "z"){ e.preventDefault(); e.shiftKey ? tRedo() : tUndo(); return true; }
@@ -15891,6 +15906,7 @@ function toLabelEl(c){ // clipboard → label element
   if (b.t === "text" || b.t === "badge") return T({text:b.text, w:W, h:Math.max(3, Math.min(ch - 2, (b.fs || b.size) * PT * 1.3 * Math.max(1, (b.text.match(/\n/g) || []).length + 1))), size:Math.min(b.fs || b.size, Math.max(5, ch / 5)), bold:b.bold !== false && b.t === "badge" || !!b.bold, italic:!!b.italic, font:b.font || "Poppins", align:b.align || "center"});
   if (b.t === "table" || b.t === "cards"){ const txt = b.t === "table" ? b.rows.map(r => r.filter(Boolean).join("  ")).join("\n") : b.items.map(it => [it.name, it.price].filter(Boolean).join("  ")).join("\n");
     return T({text:txt, w:W, h:Math.min(ch - 2, 3 * (txt.split("\n").length)), size:6.5, align:"left"}); }
+  if (b.t === "roster" || b.t === "list3") return Object.assign(JSON.parse(JSON.stringify(b)), {id:uid(), type:b.t, t:undefined, x:1, y:1, w:cw - 2, h:ch - 2, size:Math.min(b.size, 7), rot:0, locked:false, color:"#000000"});
   if (b.t === "expiry") return EXPEL({exp:JSON.parse(JSON.stringify(b.exp)), w:W, h:Math.min(ch - 2, b.exp.mode === "list" ? 4 + b.exp.rows.length * 3.2 : 8), size:Math.min(b.size, 7), font:b.font, bold:b.bold, align:b.align});
   if (b.t === "barcode") return BC({value:b.value, format:b.format, w:Math.min(W, 40), h:Math.min(ch * 0.35, 14), fs:Math.min(b.fs || 8, 8)});
   if (b.t === "qr"){ const q = Math.min(cw, ch) * 0.45; return QR({data:b.data, binary:b.binary, ecl:b.ecl, w:r2(q), h:r2(q)}); }
@@ -15905,6 +15921,7 @@ function toFlowBlock(){ // clipboard → thermal / A4 block
     if (k !== 1){ if (b.size && b.t !== "qr") b.size = r2(b.size * k); if (b.fs) b.fs = r2(b.fs * k); if (b.t === "qr") b.size = r2(b.size * k); if (b.h && b.t !== "space") b.h = r2(b.h * Math.sqrt(k)); }
     return b; }
   const e = S.clip.obj;
+  if (e.type === "roster" || e.type === "list3") return tb(e.type, {hdr:e.hdr, rows:e.rows, blank:e.blank, total:e.total, offLabel:e.offLabel, size:Math.max(10, e.size * 1.5) * A, font:e.font});
   if (e.type === "expiry") return tb("expiry", {exp:JSON.parse(JSON.stringify(e.exp)), size:Math.max(9, e.size * 1.3) * A, font:e.font, bold:e.bold, align:e.align});
   if (e.type === "text") return TX(e.text, Math.max(8, e.size * 1.2) * A, {bold:e.bold, italic:e.italic, underline:e.underline, font:e.font, align:e.align === "justify" ? "left" : e.align});
   if (e.type === "barcode") return TBC(e.value, {format:e.format, h:14 * Math.sqrt(A), fs:9 * Math.sqrt(A), wpct:A > 1 ? 45 : 80});
@@ -15995,10 +16012,35 @@ function closeExp(){ if (!EXT) return; $("#expModal").hidden = true;
 $("#expClose").onclick = closeExp;
 $("#expModal").addEventListener("pointerdown", e => { if (e.target.id === "expModal") closeExp(); });
 
+/* ---------------- store print renderers (shared by label, thermal, A4) ---------------- */
+function rosterHTML(b, u){
+  const fs = b.size * PT, fam = `'${b.font}',${FALLBACK(b.font)}`, col = b.color || "#000";
+  const g = `display:grid;grid-template-columns:${u(fs * 2.2)} minmax(0,1fr) minmax(0,0.8fr);column-gap:${u(fs * 0.6)};align-items:start`;
+  return `<div style="font-family:${fam};font-size:${u(fs)};color:${col};line-height:1.25">
+    <div style="${g};font-weight:700;border-top:${u(0.4)} solid ${col};border-bottom:${u(0.4)} solid ${col};padding:${u(fs * 0.25)} 0">${b.hdr.map((t2, i) => `<span style="${i === 2 ? "text-align:right" : ""}">${esc(t2)}</span>`).join("")}</div>
+    ${b.rows.map((r, i) => `<div style="${g};padding:${u(fs * 0.35)} 0;border-bottom:${u(0.2)} ${b.dashed === false ? "solid" : "dashed"} ${col}">
+      <span style="font-weight:700">${i + 1}.</span>
+      <span><b>${esc(r.name || "")}</b>${r.off ? `<br><span style="font-size:${u(fs * 0.82)}">${esc(b.offLabel || "Week off")}: <b>${esc(r.off)}</b></span>` : ""}</span>
+      <span style="text-align:right">${esc(r.desig || "")}</span></div>`).join("")}
+  </div>`;
+}
+function list3HTML(b, u){
+  const fs = b.size * PT, fam = `'${b.font}',${FALLBACK(b.font)}`, col = b.color || "#000", line = `${u(0.2)} ${b.lines === "dotted" ? "dotted" : b.lines === "solid" ? "solid" : "dashed"} ${col}`;
+  const g = `display:grid;grid-template-columns:${u(fs * 2.4)} minmax(0,1fr) minmax(${u(fs * 4.5)},auto);column-gap:${u(fs * 0.6)};align-items:end`;
+  const rows = b.rows.concat(Array.from({length:b.blank || 0}, () => ({name:"", cost:""})));
+  return `<div style="font-family:${fam};font-size:${u(fs)};color:${col};line-height:1.3">
+    <div style="${g};font-weight:700;border-top:${u(0.4)} solid ${col};border-bottom:${u(0.4)} solid ${col};padding:${u(fs * 0.25)} 0">${b.hdr.map((t2, i) => `<span style="${i === 2 ? "text-align:right" : ""}">${esc(t2)}</span>`).join("")}</div>
+    ${rows.map((r, i) => `<div style="${g};min-height:${u(Math.max(fs * 1.9, b.rowMin || 0))};box-sizing:border-box;padding:${u(fs * 0.3)} 0;border-bottom:${line}">
+      <span style="font-weight:700">${i + 1}.</span><span>${esc(r.name || "")}</span><span style="text-align:right;font-weight:700">${r.cost ? esc(r.cost) : ""}</span></div>`).join("")}
+    ${b.total ? `<div style="${g};padding:${u(fs * 0.4)} 0;font-weight:800;border-bottom:${u(0.4)} solid ${col}"><span></span><span>Total</span><span style="text-align:right">${b.rows.some(r => pnum(r.cost)) ? "₹" + b.rows.reduce((a, r) => a + pnum(r.cost), 0) : ""}</span></div>` : ""}
+  </div>`;
+}
+
 /* ---------------- store prints ---------------- */
 const WEEKDAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const STORE_PRINTS = [
   {id:"staff", icon:"👥", n:"Staff week-off list", d:"Branch staff with S.No, name, designation and weekly off day"},
+  {id:"list", icon:"📝", n:"Simple list", d:"Empty main heading, then S.No, Name and Cost. Fill in or leave blank lines to write by hand"},
 ];
 function openStore(){
   $("#storeTitle").textContent = "Store prints";
@@ -16007,16 +16049,19 @@ function openStore(){
   $("#storeModal").hidden = false;
 }
 $("#tStore").onclick = openStore;
-$("#storeClose").onclick = () => { $("#storeModal").hidden = true; ST = null; };
+$$(".storebtn").forEach(b => b.onclick = openStore);
+$("#storeClose").onclick = () => { $("#storeModal").hidden = true; ST = null; LT = null; };
 $("#storeModal").addEventListener("pointerdown", e => { if (e.target.id === "storeModal"){ $("#storeModal").hidden = true; ST = null; } });
 let ST = null; // staff form state
 function openStaffForm(block){
+  LT = null;
   const saved = LS.get("rosters", {});
   if (block) ST = {block, title:"", branch:"", sub:"", hdr:block.hdr.slice(), offLabel:block.offLabel, rows:JSON.parse(JSON.stringify(block.rows))};
   else { const last = Object.keys(saved)[0]; const src = last ? saved[last] : null;
     ST = {block:null, title:"STAFF NAMES", branch:src ? last : "", sub:src ? src.sub || "" : "", hdr:["S.No","Staff name","Designation"], offLabel:"Week off",
       rows:src ? JSON.parse(JSON.stringify(src.rows)) : [{name:"", desig:"", off:"Monday"}, {name:"", desig:"", off:"Tuesday"}, {name:"", desig:"", off:"Wednesday"}]}; }
-  if (block){ const d = tblocks(); const i = d.indexOf(block);
+  if (block && block.type){ const hd = els().find(x => x.name === "Heading"), br = els().find(x => x.name === "Branch"); ST.title = hd ? hd.text : "STAFF NAMES"; ST.branch = br ? br.text : ""; }
+  else if (block){ const d = tblocks(); const i = d.indexOf(block);
     ST.title = (d[i - 2] && d[i - 2].t === "text") ? d[i - 2].text : "STAFF NAMES"; ST.branch = (d[i - 1] && d[i - 1].t === "text") ? d[i - 1].text : ""; }
   renderStaffForm(); $("#storeModal").hidden = false;
 }
@@ -16044,6 +16089,8 @@ function renderStaffForm(){
 $("#storeBody").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   if (b.dataset.store === "staff"){ openStaffForm(null); return; }
+  if (b.dataset.store === "list"){ openListForm(null); return; }
+  if (LT) return listClick(b);
   if (!ST) return;
   const row = b.closest(".exrow"), i = row ? +row.dataset.i : -1;
   if (b.dataset.s === "del"){ ST.rows.splice(i, 1); renderStaffForm(); }
@@ -16064,6 +16111,13 @@ function makeStaffSlip(){
   const saved = LS.get("rosters", {}); const key = (ST.branch || "Branch").trim();
   saved[key] = {sub:ST.sub, rows}; LS.set("rosters", saved);
   const A = S.work === "a4" ? 2 : 1;
+  if (!isFlow()){ // label
+    finishEdit(); snapshot();
+    if (ST.block){ ST.block.rows = rows; const hd = els().find(x => x.name === "Heading"), br = els().find(x => x.name === "Branch"); if (hd) hd.text = ST.title; if (br) br.text = ST.branch; }
+    else S.designs[S.size] = storeLabelEls(ST.title || "STAFF NAMES", ST.branch, {id:uid(), type:"roster", name:"Staff list", hdr:ST.hdr, rows, offLabel:ST.offLabel, font:S.prefs.font || "Poppins", color:"#000000", rot:0, locked:false});
+    S.product = (ST.branch ? ST.branch + " – " : "") + "Staff week off"; S.sel = null; renderAll(); save(); touchRecent(true);
+    $("#storeModal").hidden = true; ST = null; toast("Staff label ready. Press Print."); return;
+  }
   if (ST.block){ tsnap(); ST.block.rows = rows; ST.block.hdr = ST.hdr;
     const d = tblocks(), i = d.indexOf(ST.block);
     if (d[i - 2] && d[i - 2].t === "text") d[i - 2].text = ST.title; if (d[i - 1] && d[i - 1].t === "text") d[i - 1].text = ST.branch;
@@ -16076,6 +16130,81 @@ function makeStaffSlip(){
     S.tdocs[S.size] = {blocks:order, name:(ST.branch ? ST.branch + " – " : "") + "Staff week off"}; S.tsel = null; renderThermal(); save(); touchRecent(true);
   }
   $("#storeModal").hidden = true; ST = null; toast("Staff slip ready. Press Print.");
+}
+
+/* label layout for store prints: heading band, sub heading, list filling the rest */
+function storeLabelEls(title, sub, listEl){
+  const c = cfg(), m = Math.max(1, Math.min(c.w, c.h) * 0.04), out = [];
+  const hh = Math.min(9, c.h * 0.13); let y = m;
+  if (title !== null && !String(title).trim()){ // empty heading: a line to write on
+    out.push(T({name:"Heading", text:"", x:r2(m), y:r2(y), w:r2(c.w - 2 * m), h:r2(hh), bold:true, align:"center", valign:"middle", size:Math.min(14, hh / PT / 1.2)}));
+    out.push(SH({name:"Heading line", x:r2(m + c.w * 0.1), y:r2(y + hh - 0.5), w:r2(c.w * 0.8 - 2 * m), h:0.35})); y += hh + 1.5;
+  } else if (title !== null){
+    out.push(SH({name:"Heading band", x:r2(m), y:r2(y), w:r2(c.w - 2 * m), h:r2(hh), fill:"#000000", radius:0.8}));
+    out.push(fitFont(T({name:"Heading", text:title, x:r2(m + 1), y:r2(y), w:r2(c.w - 2 * m - 2), h:r2(hh), bold:true, color:"#ffffff", align:"center", valign:"middle", lh:1.1, maxLines:1}), hh / PT / 1.1));
+    y += hh + 1;
+  }
+  if (sub){ const sh2 = Math.min(6, c.h * 0.08); out.push(fitFont(T({name:"Branch", text:sub, x:r2(m), y:r2(y), w:r2(c.w - 2 * m), h:r2(sh2), bold:true, align:"center", valign:"middle", lh:1.1, maxLines:1}), sh2 / PT / 1.1)); y += sh2 + 1; }
+  const rows = (listEl.rows || []).length + (listEl.blank || 0) + 1 + (listEl.total ? 1 : 0);
+  const lh = c.h - y - m; listEl.x = r2(m); listEl.y = r2(y); listEl.w = r2(c.w - 2 * m); listEl.h = r2(lh);
+  listEl.size = r2(Math.max(4, Math.min(14, lh / rows / 1.9 / PT)));
+  if (listEl.type === "list3") listEl.rowMin = r2((lh - listEl.size * PT * 2.2) / Math.max(1, rows - 1) - 0.4);
+  out.push(listEl);
+  return out;
+}
+
+/* simple list: S.No · Name · Cost */
+let LT = null;
+function openListForm(target){
+  ST = null;
+  if (target){ const hd = target.type ? els().find(x => x.name === "Heading") : (() => { const d = tblocks(), i = d.indexOf(target); return d[i - 1] && d[i - 1].t === "text" ? d[i - 1] : null; })();
+    LT = {target, title:hd ? hd.text : "", hdr:target.hdr.slice(), rows:JSON.parse(JSON.stringify(target.rows)), blank:target.blank || 0, total:!!target.total}; }
+  else LT = {target:null, title:"", hdr:["S.No","Name","Cost"], rows:[{name:"", cost:""}, {name:"", cost:""}, {name:"", cost:""}], blank:0, total:false};
+  renderListForm(); $("#storeModal").hidden = false;
+}
+function renderListForm(){
+  $("#storeTitle").textContent = "Simple list";
+  $("#storeBody").innerHTML = `
+    <label class="f"><span>Main heading (leave empty to write later)</span><input class="fin" id="ltTitle" value="${esc(LT.title)}" placeholder="Empty" style="width:100%"></label>
+    <div class="row"><span class="hint">Column names</span>${LT.hdr.map((t, i) => `<input class="fin" data-lh="${i}" value="${esc(t)}" style="width:110px">`).join("")}</div>
+    <section class="sharesec"><h3>Items</h3>
+      <div class="stack">${LT.rows.map((r, i) => `<div class="exrow" data-i="${i}"><b style="width:26px;align-self:center">${i + 1}.</b>
+        <label class="exl" style="flex:1;min-width:150px">${esc(LT.hdr[1])}<input class="fin" data-lr="name" value="${esc(r.name)}" style="width:100%"></label>
+        <label class="exl">${esc(LT.hdr[2])}<input class="fin" data-lr="cost" value="${esc(r.cost)}" placeholder="₹" style="width:110px"></label>
+        <button class="btn icon danger" data-ld="1" title="Remove">✕</button></div>`).join("")}</div>
+      <div class="row"><button class="btn" id="ltAdd">+ Add row</button>
+        <label class="exl">Empty rows to write by hand<input class="fin" type="number" id="ltBlank" min="0" max="40" value="${LT.blank}" style="width:90px"></label>
+        <label class="check"><input type="checkbox" id="ltTotal" ${LT.total ? "checked" : ""}> Total row</label></div>
+    </section>
+    <div class="row"><button class="btn primary" id="ltMake" style="height:44px;padding:0 20px">${LT.target ? "Update" : "Make it"}</button><span class="hint">Works on labels, thermal slips and A4 pages.</span></div>`;
+}
+function listClick(b){
+  const row = b.closest(".exrow");
+  if (b.dataset.ld){ LT.rows.splice(+row.dataset.i, 1); renderListForm(); }
+  if (b.id === "ltAdd"){ LT.rows.push({name:"", cost:""}); renderListForm(); $$("#storeBody [data-lr=name]").pop()?.focus(); }
+  if (b.id === "ltMake") makeList();
+}
+$("#storeBody").addEventListener("input", e => { const t = e.target; if (!LT) return;
+  if (t.id === "ltTitle") LT.title = t.value; if (t.id === "ltBlank") LT.blank = Math.max(0, Math.min(40, parseInt(t.value) || 0)); if (t.id === "ltTotal") LT.total = t.checked;
+  if (t.dataset.lh != null) LT.hdr[+t.dataset.lh] = t.value;
+  const row = t.closest(".exrow"); if (row && t.dataset.lr) LT.rows[+row.dataset.i][t.dataset.lr] = t.value; });
+$("#storeBody").addEventListener("keydown", e => { if (LT && e.key === "Enter" && e.target.dataset.lr === "cost"){ e.preventDefault(); $("#ltAdd").click(); } });
+function makeList(){
+  const rows = LT.rows.filter(r => (r.name || "").trim() || (r.cost || "").trim());
+  const A = S.work === "a4" ? 2 : 1;
+  const data = {hdr:LT.hdr, rows, blank:LT.blank, total:LT.total};
+  if (!isFlow()){
+    finishEdit(); snapshot();
+    if (LT.target){ Object.assign(LT.target, data); const hd = els().find(x => x.name === "Heading"); if (hd) hd.text = LT.title; }
+    else S.designs[S.size] = storeLabelEls(LT.title, "", Object.assign({id:uid(), type:"list3", name:"List", font:S.prefs.font || "Poppins", color:"#000000", rot:0, locked:false}, data));
+    S.product = LT.title || "Simple list"; S.sel = null; renderAll(); save(); touchRecent(true);
+  } else {
+    tsnap();
+    if (LT.target){ Object.assign(LT.target, data); const d = tblocks(), i = d.indexOf(LT.target); if (d[i - 1] && d[i - 1].t === "text") d[i - 1].text = LT.title; renderThermal(); save(); }
+    else { S.tdocs[S.size] = {blocks:[TH(LT.title, 18 * A, {inv:!!LT.title}), tb("list3", Object.assign({size:11 * A, font:S.prefs.font || "Poppins", mt:1}, data))], name:LT.title || "Simple list"};
+      S.tsel = null; renderThermal(); save(); touchRecent(true); }
+  }
+  $("#storeModal").hidden = true; LT = null; toast("List ready. Press Print.");
 }
 
 /* ---------------- zoom: buttons, pinch, trackpad ---------------- */
@@ -16102,6 +16231,53 @@ pinchable($("#sStage"), () => k(), setLabelZoom, null);
 pinchable($("#stage"), () => k(), setLabelZoom, () => $("#stage"));
 pinchable($("#tScroll"), () => S.tzoom || 1, setFlowZoom, () => $("#tScroll"));
 $("#tScroll").addEventListener("pointerdown", e => { if (S.pinch) e.stopPropagation(); }, true);
+
+/* ---------------- offer card style picker (recent + all styles) ---------------- */
+let CP = null; // {target block or null, cols}
+function cardSampleItems(n){ const pool = getProducts().flatMap(p => p.list);
+  return pool.slice(0, n).map(([nm, p]) => { const num = pnum(p), old = Math.round(num * 1.15 / 5) * 5 || num; return {tag:`${Math.max(5, Math.round((1 - num / old) * 100))}% OFF`, name:nm, old:"₹" + old, price:p, note:""}; }); }
+function cardStyles(){
+  const a4 = S.work === "a4", out = [];
+  if (a4) PALETTES.slice(0, 8).forEach(pl => CARD_VARIANTS.forEach((v, i) => out.push({variant:i, acc:pl.p, cbg:i === 1 ? pl.t : "#ffffff", pc:pl.a === pl.s ? pl.p : pl.a, fg:"#222222", label:`${v} · ${pl.n}`})));
+  else CARD_VARIANTS.forEach((v, i) => out.push({variant:i, acc:"#000000", cbg:i === 1 ? "#eeeeee" : "#ffffff", pc:"#000000", fg:"#000000", label:v}));
+  return out;
+}
+function cardPreview(st, cols){
+  const c = cfg(), a4 = S.work === "a4", K = a4 ? 150 / c.w : 150 / c.w, u = v => (v * K) + "px";
+  const blk = TC(cardSampleItems(cols), cols, a4 ? {2:20, 3:16, 4:12}[cols] : (cols > 1 ? 10 : 11), Object.assign({font:S.prefs.font || "Poppins"}, st));
+  return `<div class="mini" style="width:${u(c.w)};padding:${u(2)};background:#fff;text-align:left">${tBlockHTML(blk, u, c, false)}</div>`;
+}
+function openCardPicker(target){
+  const a4 = S.work === "a4";
+  CP = {target, cols:target ? target.cols : (a4 ? 3 : 1)};
+  renderCardPicker(); $("#cardModal").hidden = false;
+}
+function renderCardPicker(){
+  const a4 = S.work === "a4", cols = CP.cols;
+  const recent = LS.get("recentCards", []).filter(r => (r.kind || "thermal") === (a4 ? "a4" : "thermal"));
+  const colOpts = a4 ? [2, 3, 4] : [1, 2];
+  const card = (st, i, src) => `<button class="gcard" data-cs="${src}:${i}">${cardPreview(st, cols)}<b>${esc(st.label || CARD_VARIANTS[st.variant])}</b></button>`;
+  $("#cardTitle").textContent = CP.target ? "Change offer card style" : "Add offer cards";
+  $("#cardBody").innerHTML = `<div class="galtools"><div class="row"><span class="hint">Columns</span><div class="seg" style="width:auto">${colOpts.map(n => `<button data-cols="${n}" aria-pressed="${n === cols}" style="padding:6px 14px">${n}</button>`).join("")}</div>
+      ${CP.target ? `<span class="hint">Your items and prices stay the same.</span>` : ""}</div></div>
+    ${recent.length ? `<div class="galhead">Recent offer cards</div><div class="gal" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">${recent.map((st, i) => card(st, i, "r")).join("")}</div>` : ""}
+    <div class="galhead">All offer card styles (${cardStyles().length})</div><div class="gal" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">${cardStyles().map((st, i) => card(st, i, "a")).join("")}</div>`;
+}
+$("#cardBody").addEventListener("click", e => {
+  const cb = e.target.closest("[data-cols]"); if (cb){ CP.cols = +cb.dataset.cols; renderCardPicker(); return; }
+  const g2 = e.target.closest("[data-cs]"); if (!g2) return;
+  const [src, i] = g2.dataset.cs.split(":"), a4 = S.work === "a4";
+  const st = src === "r" ? LS.get("recentCards", []).filter(r => (r.kind || "thermal") === (a4 ? "a4" : "thermal"))[+i] : cardStyles()[+i];
+  const look = {variant:st.variant, acc:st.acc, cbg:st.cbg, pc:st.pc, fg:st.fg};
+  if (CP.target){ tsnap(); Object.assign(CP.target, look, {cols:CP.cols}); renderThermal(); save(); }
+  else { const size = a4 ? {2:20, 3:16, 4:12}[CP.cols] : (CP.cols > 1 ? 10 : 11);
+    tInsert(TC(cardSampleItems(Math.max(CP.cols, a4 ? CP.cols * 2 : 3)), CP.cols, size, Object.assign({font:S.prefs.font || "Poppins"}, look))); }
+  const rec = LS.get("recentCards", []).filter(r => JSON.stringify([r.variant, r.acc, r.cbg, r.pc, r.kind]) !== JSON.stringify([st.variant, st.acc, st.cbg, st.pc, a4 ? "a4" : "thermal"]));
+  rec.unshift(Object.assign({}, look, {label:st.label || CARD_VARIANTS[st.variant], kind:a4 ? "a4" : "thermal"})); LS.set("recentCards", rec.slice(0, 12));
+  $("#cardModal").hidden = true; CP = null; toast("Offer cards " + (src === "r" ? "(recent style) " : "") + "added. Tap any card to type.");
+});
+$("#cardClose").onclick = () => { $("#cardModal").hidden = true; CP = null; };
+$("#cardModal").addEventListener("pointerdown", e => { if (e.target.id === "cardModal"){ $("#cardModal").hidden = true; CP = null; } });
 
 /* ---------------- test print ---------------- */
 async function testPrint(){
@@ -16873,7 +17049,7 @@ function recentsHTML(kind, c, from = 0, to = 11){
   if (!list.length) return "";
   const cards = list.map(r => { let mini = ""; try{ const d = JSON.parse(r.json);
       mini = kind !== "label" ? tMini(d.blocks, c, d) : miniHTML(d.els, Object.assign({}, c, d.settings || {}), 130); }catch(e){}
-    return `<button class="gcard reccard" data-recent="${r.id}" data-q="${esc(r.name.toLowerCase())}">${mini}<b>${esc(r.name)}</b><span class="hint">${timeAgo(r.at)}${r.id === S.curRecent[recentKey()] ? " · open now" : ""}</span><span class="rmrec" data-rmrec="1" role="button" aria-label="Remove from recent" title="Remove from recent">✕</span></button>`; }).join("");
+    return `<button class="gcard reccard" data-recent="${r.id}" data-cards="${r.json.includes('"t":"cards"') ? 1 : 0}" data-q="${esc(r.name.toLowerCase())}">${mini}<b>${esc(r.name)}</b><span class="hint">${timeAgo(r.at)}${r.id === S.curRecent[recentKey()] ? " · open now" : ""}</span><span class="rmrec" data-rmrec="1" role="button" aria-label="Remove from recent" title="Remove from recent">✕</span></button>`; }).join("");
   return cards;
 }
 function openRecent(id){
