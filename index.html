@@ -13618,7 +13618,7 @@ function expLines(x){
   return out.join("\n");
 }
 function expListHTML(x, u, fs, font, col){
-  const c3 = `display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:${u(fs * 0.8)};row-gap:${u(fs * 0.3)};align-items:baseline`;
+  const c3 = `display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:${u(fs * 0.8)};row-gap:${u(fs * 0.3)};align-items:end`;
   const base = expBase(x);
   return `<div style="font-family:${font};font-size:${u(fs)};color:${col};line-height:1.25">
     ${x.showMfg ? `<div style="text-align:center;margin-bottom:${u(fs * 0.4)}">${esc(x.mfgLabel)}: ${fmtDate(base)}</div>` : ""}
@@ -15431,7 +15431,7 @@ function tBlockHTML(b, u, c, edit){
   } else if (b.t === "table"){
     const fs = b.size * PT, col = b.color || "#000";
     h = `<div style="${font(b.font)};font-size:${u(fs)};line-height:1.3;color:${col}">` + b.rows.map((r, ri) =>
-      `<div style="display:flex;align-items:baseline;gap:${u(1.5)};padding:${u(fs * 0.18)} 0;${b.zebra && ri % 2 ? `background:${b.zebra};` : ""}${b.rules ? `border-bottom:${u(0.2)} solid ${col};` : ""}">
+      `<div style="display:flex;align-items:flex-end;gap:${u(1.5)};padding:${u(fs * 0.18)} 0;${b.zebra && ri % 2 ? `background:${b.zebra};` : ""}${b.rules ? `border-bottom:${u(0.2)} solid ${col};` : ""}">
         <div class="tc"${ce} data-r="${ri}" data-c="0" data-ph="Item" style="flex:0 1 auto;min-width:${u(4)};white-space:pre-wrap;overflow-wrap:anywhere;font-weight:${b.bold || (b.head && ri === 0) ? 700 : 400}">${esc(r[0])}</div>
         <div style="flex:1 1 ${u(3)};min-width:${u(3)};${b.leaders && !(b.head && ri === 0) ? `border-bottom:${u(0.35)} dotted ${col};align-self:flex-end;margin-bottom:${u(fs * 0.25)}` : ""}"></div>
         <div class="tc"${ce} data-r="${ri}" data-c="1" data-ph="Price" style="flex:0 0 auto;max-width:55%;text-align:right;white-space:pre-wrap;font-weight:700;color:${b.pc || col}">${esc(r[1])}</div></div>`).join("") + `</div>`;
@@ -15780,9 +15780,9 @@ $("#tQty").oninput = e => { const v = parseInt(e.target.value); if (v > 0){ S.pr
 $("#tQty").onblur = e => tSetQty(e.target.value);
 $("#tPrint").onclick = () => tPrint();
 $("#tPdf").onclick = () => tPDF();
-async function tMeasure(c, u, unitPerMm){
+async function tMeasure(c, u, unitPerMm, minMm){
   const host = document.createElement("div");
-  host.style.cssText = `position:fixed;left:-30000px;top:0;width:${u(c.w)};background:${kindOf(c) === "a4" && tdoc().bg ? tdoc().bg : "#fff"};box-sizing:border-box;${flowBorderCSS(u, c)}`;
+  host.style.cssText = `position:fixed;left:-30000px;top:0;width:${u(c.w)};background:${kindOf(c) === "a4" && tdoc().bg ? tdoc().bg : "#fff"};box-sizing:border-box;${flowBorderCSS(u, c)}${minMm ? `min-height:${u(minMm)};display:flex;flex-direction:column;justify-content:space-between;` : ""}`;
   host.innerHTML = tblocks().map(b => tBlockHTML(b, u, c, false)).join("");
   document.body.appendChild(host);
   try{ await document.fonts.ready; }catch(e){}
@@ -15805,12 +15805,16 @@ async function tPrint(){
   const pw = paperW(c), content = r2(mm + 1);
   // never shorter than the paper is wide: a "wide" page makes the browser turn it sideways on the roll
   const want = c.lenMode === "fixed" ? (c.fixedLen || 150) : content + (c.mt || 0) * 2 + (c.feed || 0);
-  const slip = r2(Math.max(want, c.minLen || 0, pw + 1));
+  // a page shorter than the paper is wide prints sideways, so short slips need a minimum length.
+  // "spread" fills that length with the design itself (no empty paper), "blank" adds empty paper, "exact" uses no minimum.
+  const short = c.shortMode || "spread", floor = short === "exact" ? 0 : pw + 1;
+  const slip = r2(Math.max(want, c.minLen || 0, floor));
   const s = (c.scale || 100) / 100;
+  const spreadTo = short === "spread" && c.lenMode !== "fixed" && slip > want ? r2((slip - (c.mt || 0) * 2 - (c.feed || 0) - 1) / s) : 0;
   let inner;
-  if (c.sharp !== false){ $("#busy").hidden = false; const cv = thresholdCanvas(await designCanvas(c.dpi || 203), c.dark || 150); $("#busy").hidden = true;
+  if (c.sharp !== false){ $("#busy").hidden = false; const cv = thresholdCanvas(await designCanvas(c.dpi || 203, spreadTo), c.dark || 150); $("#busy").hidden = true;
     inner = `<img src="${cv.toDataURL("image/png")}" alt="" style="display:block;width:${r2(c.w * s)}mm;height:auto;image-rendering:pixelated">`; }
-  else { inner = `<div style="${flowBorderCSS(v => v + "mm", c)}">` + tblocks().map(b => tBlockHTML(b, v => v + "mm", c, false)).join("") + `</div>`; if (s !== 1) inner = `<div style="transform-origin:0 0;transform:scale(${s})">${inner}</div>`; }
+  else { inner = `<div style="${flowBorderCSS(v => v + "mm", c)}${spreadTo ? `min-height:${spreadTo}mm;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box;` : ""}">` + tblocks().map(b => tBlockHTML(b, v => v + "mm", c, false)).join("") + `</div>`; if (s !== 1) inner = `<div style="transform-origin:0 0;transform:scale(${s})">${inner}</div>`; }
   const cell = top => `<div class="pcell" style="left:${r2(c.ml + cdx(c))}mm;top:${r2(top + (c.mt || 0) + cdy(c))}mm;width:${c.w}mm;overflow:visible">${inner}</div>`;
   let h = "";
   if (c.cut === "end"){
@@ -16310,6 +16314,7 @@ function printerSettingsHTML(c, inSettings){
   if (k === "thermal"){
     h += n("pw", "Paper width (mm)", paperW(c), 1) + n("w", "Print width (mm)", c.w, 0.5) + n("mt", "Top margin (mm)", c.mt || 0) + n("feed", "Feed before cut (mm)", c.feed || 0, 1) +
       `<label class="f"><span>Slip length</span>${sel("lenMode", [["fit", "Fit the content"], ["fixed", "Fixed length"]], c.lenMode || "fit")}</label>` + n("fixedLen", "Fixed length (mm)", c.fixedLen || 150, 1) +
+      `<label class="f full"><span>Short slips</span>${sel("shortMode", [["spread", "Spread the design to fill (no empty paper)"], ["blank", "Add empty paper at the end"], ["exact", "Exact length (may print sideways)"]], c.shortMode || "spread")}</label>` +
       `<label class="f full"><span>Auto cut</span>${sel("cut", [["each", "Cut after each copy"], ["end", "One cut after all copies"]], c.cut || "each")}</label>`;
   }
   if (k === "a4"){
@@ -16324,7 +16329,7 @@ function printerSettingsHTML(c, inSettings){
   }
   h += `</div><div class="row" style="margin-top:8px"><button class="btn" data-test="1">Test print</button></div></section>`;
   const tip = k === "label" ? `<li>Paper size: ${r2(c.ml * 2 + c.cols * stockOf(c).w + (c.cols - 1) * c.gap)} × ${r2(stockOf(c).h + c.mt * 2)} mm</li>`
-    : k === "thermal" ? `<li>Paper: your ${paperW(c)} mm roll (e.g. "80 × 297 mm" or "Roll paper 80 mm"), <b>Portrait</b></li><li>In the printer's options: <b>Cut after each page</b></li>`
+    : k === "thermal" ? `<li>Paper: your ${paperW(c)} mm roll (e.g. "80 × 297 mm" or "Roll paper 80 mm"), <b>Portrait</b></li><li>In the printer's options: <b>Cut after each page</b></li><li>Still empty paper at the top? In the computer's printer <b>Printing preferences</b>, set top margin / feed before print to <b>0</b>, and turn on <b>Paper saving</b> (skip blank lines) if it has it</li>`
     : `<li>Paper: A4 · ${c.pageW > c.pageH ? "Landscape" : "Portrait"} · Background graphics: ON</li>`;
   h += `<section class="sec"><div class="tipbox"><b>In the print window, set once:</b><ul>${tip}<li>Margins: <b>None</b> · Scale: <b>100%</b></li><li>Untick <b>Headers and footers</b> (this removes the date and page number)</li></ul></div></section>`;
   return h;
@@ -16545,9 +16550,9 @@ function pngWithDpi(dataURL, dpi){
   const out = new Uint8Array(src.length + 21); out.set(src.subarray(0, 33)); out.set(chunk, 33); out.set(src.subarray(33), 54);
   return new Blob([out], {type:"image/png"});
 }
-async function designCanvas(dpi){
+async function designCanvas(dpi, minMm){
   const SC = dpi / 25.4, c = cfg();
-  if (isFlow()){ const {host} = await tMeasure(c, v => (v * SC) + "px", SC); host.style.padding = "0"; const cv = await html2canvas(host, {scale:1, backgroundColor:"#ffffff", logging:false}); host.remove(); return cv; }
+  if (isFlow()){ const {host} = await tMeasure(c, v => (v * SC) + "px", SC, minMm); host.style.padding = "0"; const cv = await html2canvas(host, {scale:1, backgroundColor:"#ffffff", logging:false}); host.remove(); return cv; }
   const u = v => (v * SC) + "px"; const host = document.createElement("div");
   host.style.cssText = `position:fixed;left:-20000px;top:0;width:${c.w * SC}px;height:${c.h * SC}px;background:#fff;overflow:hidden`;
   host.innerHTML = visEls().map(e => elHTML(e, u)).join("");
